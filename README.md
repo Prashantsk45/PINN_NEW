@@ -72,20 +72,20 @@ Quantitative verification at the unseen Approach flight condition ($\Phi = 0.700
 
 | Physical Field / Diagnostic Metric | Symbol | Benchmark CFD (Fluent 2025 R2) | DA-PINN Surrogate (Zero-Shot) | Absolute / Relative Error | Determination $R^2$ | Status |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Forward Stagnation Point** | $z_{\text{stag}}$ | $4.20\,\text{mm}$ | **$4.50\,\text{mm}$** | $|\Delta z| = 0.30\,\text{mm}$ ($0.35\% D$) | --- | **Validated** |
-| **Peak Annular Jet Velocity ($z=5\,\text{mm}$)** | $W_{z,\text{max}}$ | $+137.26\,\text{m/s}$ | **$+111.51\,\text{m/s}$** | $\text{RMSE} = 1.04\,\text{m/s}$ (local rake) | $0.9989$ | **Validated** |
-| **CTRZ Reverse Flow Velocity** | $W_{z,\text{min}}$ | $-24.17\,\text{m/s}$ | **$-19.90\,\text{m/s}$** | Captures core vortex trough | $0.9805$ ($z=15\,\text{mm}$) | **Validated** |
-| **Overall Axial Velocity Field** | $W_z$ | $[-24.17, +137.26]\,\text{m/s}$ | **$[-19.90, +111.51]\,\text{m/s}$** | $\text{RMSE} = 6.10\,\text{m/s}$, $\text{MAE} = 4.11\,\text{m/s}$ | **$0.9523$** | **Validated** |
-| **Tangential Swirl Velocity Field** | $V_\theta$ | $[-5.33, +47.40]\,\text{m/s}$ | **$[-7.06, +61.94]\,\text{m/s}$** | $\text{RMSE} = 5.31\,\text{m/s}$, $\text{MAE} = 3.31\,\text{m/s}$ | **$0.7847$** | **Validated** |
-| **Radial Pressure Traverses ($z \le 25\,\text{mm}$)** | $p(r)$ | $[46.8, 651.3]\,\text{Pa}$ | **$[75.2, 595.0]\,\text{Pa}$** | $\text{RMSE} = 18.42\,\text{Pa}$, Rel. $L_2 = 7.97\%$ | **$0.9932$** | **Validated** |
-| **Combustor Aerodynamic Pressure Drop** | $\Delta P$ | $1312.2\,\text{Pa}$ | **$1276.0\,\text{Pa}$** | $|\Delta P| = 36.2\,\text{Pa}$ ($2.76\%$) | --- | **Validated** |
-| **Static Temperature Field** | $T$ | $[428.3, 2411.2]\,\text{K}$ | **$[558.7, 2290.0]\,\text{K}$** | $\text{RMSE} = 143.7\,\text{K}$, $\text{MAE} = 103.9\,\text{K}$ | **$0.9479$** | **Validated** |
-| **Peak Volume Flame Temperature** | $T_{\text{max}}$ | $2426.9\,\text{K}$ | **$2435.7\,\text{K}$** | $|\Delta T| = 8.7\,\text{K}$ ($0.36\%$) | --- | **Validated** |
-| **Hydroxyl Radical Pool ($z \le 15\,\text{mm}$)** | $X_{\text{OH}}$ | $[0.00, 7.61] \times 10^{-3}$ | **$[0.00, 4.51] \times 10^{-3}$** | $\text{RMSE} = 0.099 \times 10^{-3}$ (shear zone) | **$0.9135$** | **Validated** |
-| **Combustor Liner Wall Heat Flux** | $q''_{\text{wall}}$ | $[0.0, 864.2]\,\text{kW/m}^2$ | **$[28.3, 551.4]\,\text{kW/m}^2$** | $\text{RMSE} = 46.8\,\text{kW/m}^2$, $\text{MAE} = 32.0\,\text{kW/m}^2$ | **$0.8453$** | **Validated** |
+| **Forward Stagnation Point** | $z_{\text{stag}}$ | $4.20\text{ mm}$ | **$4.50\text{ mm}$** | $\Delta z = 0.30\text{ mm}$ ($0.35\% D$) | --- | **Validated** |
+| **Peak Annular Jet Velocity ($z=5\text{ mm}$)** | $W_{z,\text{max}}$ | $+137.26\text{ m/s}$ | **$+111.51\text{ m/s}$** | $\text{RMSE} = 1.04\text{ m/s}$ (local rake) | $0.9989$ | **Validated** |
+| **CTRZ Reverse Flow Velocity** | $W_{z,\text{min}}$ | $-24.17\text{ m/s}$ | **$-19.90\text{ m/s}$** | Captures core vortex trough | $0.9805$ ($z=15\text{ mm}$) | **Validated** |
+| **Overall Axial Velocity Field** | $W_z$ | $[-24.17, +137.26]\text{ m/s}$ | **$[-19.90, +111.51]\text{ m/s}$** | $\text{RMSE} = 6.10\text{ m/s}$, $\text{MAE} = 4.11\text{ m/s}$ | **$0.9523$** | **Validated** |
+| **Tangential Swirl Velocity Field** | $V_\theta$ | $[-5.33, +47.40]\text{ m/s}$ | **$[-7.06, +61.94]\text{ m/s}$** | $\text{RMSE} = 5.31\text{ m/s}$, $\text{MAE} = 3.31\text{ m/s}$ | **$0.7847$** | **Validated** |
+| **Radial Pressure Traverses ($z \le 25\text{ mm}$)** | $p(r)$ | $[46.8, 651.3]\text{ Pa}$ | **$[75.2, 595.0]\text{ Pa}$** | $\text{RMSE} = 18.42\text{ Pa}$, $\text{Rel. } L_2 = 7.97\%$ | **$0.9932$** | **Validated** |
+| **Combustor Aerodynamic Pressure Drop** | $\Delta P$ | $1312.2\text{ Pa}$ | **$1276.0\text{ Pa}$** | $\Delta P = 36.2\text{ Pa}$ ($2.76\%$) | --- | **Validated** |
+| **Static Temperature Field** | $T$ | $[428.3, 2411.2]\text{ K}$ | **$[558.7, 2290.0]\text{ K}$** | $\text{RMSE} = 143.7\text{ K}$, $\text{MAE} = 103.9\text{ K}$ | **$0.9479$** | **Validated** |
+| **Peak Volume Flame Temperature** | $T_{\text{max}}$ | $2426.9\text{ K}$ | **$2435.7\text{ K}$** | $\Delta T = 8.7\text{ K}$ ($0.36\%$) | --- | **Validated** |
+| **Hydroxyl Radical Pool ($z \le 15\text{ mm}$)** | $X_{\text{OH}}$ | $[0.00, 7.61] \times 10^{-3}$ | **$[0.00, 4.51] \times 10^{-3}$** | $\text{RMSE} = 0.099 \times 10^{-3}$ (shear zone) | **$0.9135$** | **Validated** |
+| **Combustor Liner Wall Heat Flux** | $q''_{\text{wall}}$ | $[0.0, 864.2]\text{ kW/m}^2$ | **$[28.3, 551.4]\text{ kW/m}^2$** | $\text{RMSE} = 46.8\text{ kW/m}^2$, $\text{MAE} = 32.0\text{ kW/m}^2$ | **$0.8453$** | **Validated** |
 | **Near-Nozzle Flashback Margin Index** | $M_{\text{flash}}$ | $4.72$ (min $1.41$) | **$4.65$ (min $1.41$)** | $> 1.0$ across entire liner & lip | --- | **Verified** |
-| **Full 3D Solution Wall-Time** | $t_{\text{sol}}$ | $7,200\,\text{s}$ ($48.2\,\text{CPU-h}$) | **$1.58\,\text{s}$ (GPU)** | **$> 4,500\times$ Speedup** | --- | **Verified** |
-| **Model Footprint & Storage** | Size | $14.8\,\text{GB}$ (Mesh + Solution) | **$2.1\,\text{MB}$ (526k FP32 weights)** | **$> 7,000\times$ Compression** | --- | **Verified** |
+| **Full 3D Solution Wall-Time** | $t_{\text{sol}}$ | $7,200\text{ s}$ ($48.2\text{ CPU-h}$) | **$1.58\text{ s}$ (GPU)** | **$> 4,500\times$ Speedup** | --- | **Verified** |
+| **Model Footprint & Storage** | Size | $14.8\text{ GB}$ (Mesh + Sol) | **$2.1\text{ MB}$ (526k FP32 weights)** | **$> 7,000\times$ Compression** | --- | **Verified** |
 
 ---
 
