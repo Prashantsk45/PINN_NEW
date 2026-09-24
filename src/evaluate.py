@@ -35,8 +35,11 @@ def compute_sha256(filepath):
             sha256.update(chunk)
     return sha256.hexdigest().upper()
 
-def evaluate_multi_physics_holdout(model_path=r"D:\CFD\PINN_NEW\checkpoints\best_multi_physics_model.pt",
-                                   device=config.DEVICE):
+def evaluate_multi_physics_holdout(model_path=None, device=config.DEVICE):
+    if model_path is None:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        model_path = os.path.join(base_dir, "models", "best_multi_physics_model.pt")
+        
     print(f"=== Multi-Physics Blind Holdout Evaluation: Approach (Phi = 0.70) ===", flush=True)
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Trained model checkpoint not found: {model_path}")
@@ -237,17 +240,21 @@ def evaluate_multi_physics_holdout(model_path=r"D:\CFD\PINN_NEW\checkpoints\best
     audit['station_breakdown'] = station_breakdown
 
     # Save Predictions CSV
-    pred_csv_path = r"D:\CFD\PINN_NEW\results\phi070_multi_physics_blind_predictions.csv"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    data_dir = os.path.join(base_dir, "data")
+    os.makedirs(data_dir, exist_ok=True)
+    
+    pred_csv_path = os.path.join(data_dir, "phi070_multi_physics_blind_predictions.csv")
     df_holdout.to_csv(pred_csv_path, index=False)
     pred_sha = compute_sha256(pred_csv_path)
     audit['predictions_csv'] = pred_csv_path
     audit['predictions_sha256'] = pred_sha
     
-    wall_csv_path = r"D:\CFD\PINN_NEW\results\phi070_wall_heat_flux_predictions.csv"
+    wall_csv_path = os.path.join(data_dir, "phi070_wall_heat_flux_predictions.csv")
     df_whf.to_csv(wall_csv_path, index=False)
 
     # Save Audit JSON
-    audit_json_path = r"D:\CFD\PINN_NEW\results\phi070_multi_physics_audit_report.json"
+    audit_json_path = os.path.join(data_dir, "phi070_multi_physics_audit_report.json")
     with open(audit_json_path, "w") as f:
         json.dump(audit, f, indent=2)
 

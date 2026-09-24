@@ -13,7 +13,6 @@
 **Affiliation:** AeroMyne, Solapur, Maharashtra 413305, India  
 **Figshare Archive:** [doi:10.6084/m9.figshare.33684790](https://doi.org/10.6084/m9.figshare.33684790)  
 **Target Publication:** *Physical Review Fluids* / *AIAA Journal* (Under Review)  
-**Full Manuscript:** [Download Manuscript PDF (paper/main.pdf)](paper/main.pdf)
 
 ---
 
@@ -172,75 +171,42 @@ All spatial dimensions and field variables are non-dimensionalized by characteri
 
 ---
 
-## 5. Key Scientific Highlights & Figure Gallery
+## 5. Key Scientific Highlights
 
-### A. Optimization Convergence & ReLoBRaLo Adaptive Loss Weights
-The phased optimization protocol drives multi-objective loss down across four orders of magnitude (from $233.3$ to $0.16$). ReLoBRaLo dynamically balances stiff kinetic and momentum gradients.
+### A. Phased Optimization & Dynamic ReLoBRaLo Loss Balancing
+The two-stage optimization protocol drives multi-objective residual loss down across four orders of magnitude (from $233.3$ to $0.16$). ReLoBRaLo dynamically balances stiff kinetic and momentum gradients, preventing spectral starvation and accelerating convergence.
 
 <p align="center">
-  <img src="figures/figure_3_training_convergence_relobralo.png" width="95%" alt="Convergence History and ReLoBRaLo Weights">
+  <img src="figures/figure_3_training_convergence_relobralo.png" width="90%" alt="Convergence History and ReLoBRaLo Weights">
   <br>
-  <em>Figure 3: Optimization dynamics and adaptive loss balancing: (a) Multi-objective composite loss history across AdamW and Quasi-Newton L-BFGS refinement; (b) ReLoBRaLo adaptive loss weight trajectories dynamically adjusting PDE residuals.</em>
+  <em>Figure 2: Optimization dynamics and adaptive loss balancing: (a) Multi-objective composite loss history across AdamW (Phase 1) and Quasi-Newton L-BFGS (Phase 2); (b) ReLoBRaLo adaptive loss weight trajectories dynamically adjusting PDE residuals.</em>
 </p>
 
-### B. Axial Velocity Traverses & 1:1 Parity Agreement
-Across all seven transverse rakes ($z = 5\text{--}80\,\text{mm}$), the surrogate resolves the high-momentum annular jet ($+111.51\,\text{m/s}$) and central reverse flow ($-19.90\,\text{m/s}$), achieving an overall $R^2 = 0.9523$.
+### B. Blind Holdout Hydrodynamic Traverses & Parity Correlation
+Across all seven transverse rakes ($z = 5\text{--}80\text{ mm}$), the surrogate resolves the high-momentum annular jet ($+111.51\text{ m/s}$) and central reverse flow ($-19.90\text{ m/s}$), achieving an overall $R^2 = 0.9523$ on the 100% blind Approach condition ($\Phi = 0.70$).
 
 <p align="center">
-  <img src="figures/figure_4_axial_velocity_profiles.png" width="95%" alt="Axial Velocity Profiles and Parity">
+  <img src="figures/figure_4_axial_velocity_profiles.png" width="90%" alt="Axial Velocity Profiles and Parity">
   <br>
-  <em>Figure 4: Transverse radial profiles of axial velocity $W_z(r)$ across all seven measurement stations and overall parity scatter on the blind holdout condition ($\Phi = 0.70$).</em>
+  <em>Figure 3: Transverse radial profiles of axial velocity $W_z(r)$ across all seven measurement stations and overall parity scatter on the blind holdout condition ($\Phi = 0.70$).</em>
 </p>
 
-### C. Tangential Swirl Velocity Traverses & Parity Agreement
-Tangential swirl traverses capture intense angular momentum generation in the near-nozzle shear core ($z \le 25\,\text{mm}$, $R^2 \ge 0.81\text{--}0.86$) and downstream swirl dissipation without artificial numerical decay.
+### C. Aerodynamic Flame Stabilization (CTRZ) & Flashback Immunity
+Centerline velocity tracking resolves the forward stagnation point ($z_{\text{stag}} = 4.50\text{ mm}$ vs. $4.20\text{ mm}$ CFD, error $< 0.35\% D$). Thermal recirculation brings $2290\text{ K}$ gases upstream to continuously anchor the flame, while near-nozzle flashback margins remain strictly above unity ($M_{\text{flash}} = 4.65 > 1.0$) across the entire operating range.
 
 <p align="center">
-  <img src="figures/figure_5_tangential_velocity_profiles.png" width="95%" alt="Tangential Swirl Velocity Profiles and Parity">
+  <img src="figures/figure_9_crz_and_flashback.png" width="90%" alt="CRZ Recirculation and Flashback Margin">
   <br>
-  <em>Figure 5: Transverse radial profiles of tangential swirl velocity $V_\theta(r)$ and corresponding parity scatter on the blind holdout condition ($\Phi = 0.70$).</em>
+  <em>Figure 4: Aerodynamic flame stabilization and flashback safety margin verification at $\Phi = 0.70$: (a) centerline axial velocity $W_z(r=0, z)$ tracking forward stagnation point; (b) centerline temperature recirculation profile $T(r=0, z)$; and (c) axial boundary layer flashback margin index $[U_{\text{local}}/S_{\text{T}}]$.</em>
 </p>
 
-### D. Aerodynamic Recirculation (CTRZ) & Flashback Safety Margins
-Centerline velocity tracking resolves the forward stagnation point ($z_{\text{stag}} = 4.50\,\text{mm}$ vs. $4.20\,\text{mm}$ CFD, error $< 0.35\% D$). Thermal recirculation brings $2290\,\text{K}$ gases upstream to continuously anchor the flame, while near-nozzle flashback margins remain strictly above unity ($M_{\text{flash}} = 4.65 > 1.0$).
+### D. Multi-Throttle Operability, Speedup & Storage Compression
+The neural model continuously generalizes across the full flight envelope ($\Phi \in [0.55, 1.00]$), tracking peak flame temperature and aerodynamic pressure drops. It achieves a $> 4,500\times$ inference wall-time speedup and $> 7,000\times$ storage compression compared to high-fidelity finite-volume CFD.
 
 <p align="center">
-  <img src="figures/figure_6_crz_and_flashback.png" width="95%" alt="CRZ Recirculation and Flashback Margin">
+  <img src="figures/figure_10_scaling_and_computational_speedup.png" width="90%" alt="Multi-Throttle Scaling, Speedup and Compression">
   <br>
-  <em>Figure 6: Aerodynamic flame stabilization and flashback safety margin verification at $\Phi = 0.70$: (a) centerline axial velocity $W_z(r=0, z)$ tracking forward stagnation point; (b) centerline temperature recirculation profile $T(r=0, z)$; and (c) axial boundary layer flashback margin index $[U_{\text{local}}/S_{\text{T}}]$.</em>
-</p>
-
-### E. Thermal M-Flame Core & OH Radical Reaction Zones
-The surrogate accurately reconstructs the dual-peak M-flame temperature distribution near the injector dump plane ($z = 5, 10\,\text{mm}$), the high-temperature product core ($2290\,\text{K}$), and sharp sub-millimeter hydroxyl radical gradients ($X_{\text{OH}}$).
-
-<p align="center">
-  <img src="figures/figure_6_static_temperature_profiles.png" width="95%" alt="Static Temperature Profiles and Parity">
-  <br>
-  <em>Figure 7: Transverse radial profiles of static temperature $T(r)$ across all seven stations and parity scatter at $\Phi = 0.70$ ($R^2 = 0.9479$, $\text{RMSE} = 143.7\,\text{K}$).</em>
-</p>
-
-<p align="center">
-  <img src="figures/figure_7_chemical_kinetics_oh.png" width="95%" alt="OH Radical Profiles and Parity">
-  <br>
-  <em>Figure 8: Transverse radial profiles of hydroxyl radical mole fraction $X_{\text{OH}}(r)$ across all seven stations and parity correlation scatter at $\Phi = 0.70$ ($R^2 = 0.9135$ in active shear zone).</em>
-</p>
-
-### F. Radial Static Pressure Depression & Liner Wall Heat Flux
-Radial static pressure traverses satisfy the centripetal balance $\partial p / \partial r \approx \rho V_\theta^2 / r$ ($R^2 = 0.9932$), while liner wall heat flux tracks outer recirculation zone aerodynamic shielding near the faceplate ($< 100\,\text{kW/m}^2$) and downstream thermal impingement ($R^2 = 0.8453$).
-
-<p align="center">
-  <img src="figures/figure_8_pressure_and_heat_flux.png" width="95%" alt="Static Pressure and Liner Wall Heat Flux">
-  <br>
-  <em>Figure 9: Aerodynamic static pressure and combustor liner thermal loading verification at $\Phi = 0.70$: (a) radial static pressure profiles $p(r)$; (b) static pressure parity scatter; (c) axial distribution of liner wall heat flux $q''_{\text{wall}}(z)$; and (d) liner heat flux parity scatter across 1,527 unseen surface points ($R^2 = 0.8453$).</em>
-</p>
-
-### G. Multi-Throttle Operability, Speedup & Storage Compression
-The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tracking peak flame temperature and pressure drops. It achieves a $> 4,500\times$ inference wall-time speedup and $> 7,000\times$ storage compression.
-
-<p align="center">
-  <img src="figures/figure_10_scaling_and_computational_speedup.png" width="95%" alt="Multi-Throttle Scaling, Speedup and Compression">
-  <br>
-  <em>Figure 10: Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope: (a) aerothermodynamic scaling of $T_{\text{max}}(\Phi)$ and $\Delta P(\Phi)$; (b) computational latency comparison ($> 4,500\times$ speedup); and (c) resource storage compression ($> 7,000\times$ reduction from $14.8\,\text{GB}$ to $2.1\,\text{MB}$).</em>
+  <em>Figure 5: Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope: (a) aerothermodynamic scaling of $T_{\text{max}}(\Phi)$ and $\Delta P(\Phi)$; (b) computational latency comparison ($> 4,500\times$ speedup); and (c) resource storage compression ($> 7,000\times$ reduction from $14.8\text{ GB}$ to $2.1\text{ MB}$).</em>
 </p>
 
 ---
@@ -249,9 +215,9 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 
 ```text
 .
-├── .gitignore                          # Clean filter for python, checkpoints, and LaTeX builds
+├── .gitignore                          # Clean filter for python cache, binaries & environment
 ├── LICENSE                             # Open-source MIT License
-├── README.md                           # Master repository documentation & figure showcase
+├── README.md                           # Master repository documentation
 ├── requirements.txt                    # Minimal scientific & deep learning dependencies
 │
 ├── src/                                # Core Neural Network, PDE & Evaluation Modules
@@ -263,10 +229,11 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 │   ├── data_loader.py                  # Multi-throttle CFD benchmark data ingestion engine
 │   ├── train.py                        # Two-stage AdamW + Quasi-Newton L-BFGS master training loop
 │   ├── evaluate.py                     # Statistical holdout verification & quantitative metric auditor
-│   └── generate_figures.py             # Master 600 DPI publication figure generator
+│   └── generate_figures.py             # Publication figure generator (600 DPI PNG & Vector PDF)
 │
-├── checkpoints/                        # Trained Neural Surrogate Weights
-│   └── best_multi_physics_model.pt     # 2.1 MB FP32 parameter checkpoint (526,380 weights)
+├── models/                             # Trained Neural Surrogate Checkpoints
+│   ├── best_multi_physics_model.pt     # 2.1 MB FP32 parameter checkpoint (526,380 weights)
+│   └── final_multi_physics_model.pt    # Final convergence checkpoint
 │
 ├── data/                               # Numerical Benchmark & Holdout Extraction Datasets
 │   ├── phi070_multi_physics_blind_predictions.csv
@@ -274,23 +241,17 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 │   ├── phi082_blind_predictions.csv
 │   └── audit_report.json
 │
-├── figures/                            # Publication Figures (600 DPI PNG & Vector PDF)
-│   ├── figure_1_architecture_and_domain.png / .pdf
-│   ├── figure_2_neural_architecture.png / .pdf
-│   ├── figure_3_training_convergence_relobralo.png / .pdf
-│   ├── figure_4_axial_velocity_profiles.png / .pdf
-│   ├── figure_5_tangential_velocity_profiles.png / .pdf
-│   ├── figure_6_static_temperature_profiles.png / .pdf
-│   ├── figure_7_chemical_kinetics_oh.png / .pdf
-│   ├── figure_8_pressure_and_heat_flux.png / .pdf
-│   ├── figure_9_crz_and_flashback.png / .pdf
-│   └── figure_10_scaling_and_computational_speedup.png / .pdf
-│
-└── paper/                              # Research Manuscript & LaTeX Source
-    ├── main.tex                        # Production RevTeX 4-2 manuscript source (15 pages)
-    ├── main.pdf                        # Production publication PDF with 10 vector figures
-    ├── references.bib                  # Complete BibTeX bibliography
-    └── figures/                        # Embedded publication vector graphics
+└── figures/                            # Master Publication Figures (600 DPI PNG & Vector PDF)
+    ├── figure_1_architecture_and_domain.png / .pdf
+    ├── figure_2_neural_architecture.png / .pdf
+    ├── figure_3_training_convergence_relobralo.png / .pdf
+    ├── figure_4_axial_velocity_profiles.png / .pdf
+    ├── figure_5_tangential_velocity_profiles.png / .pdf
+    ├── figure_6_static_temperature_profiles.png / .pdf
+    ├── figure_7_chemical_kinetics_oh.png / .pdf
+    ├── figure_8_pressure_and_heat_flux.png / .pdf
+    ├── figure_9_crz_and_flashback.png / .pdf
+    └── figure_10_scaling_and_computational_speedup.png / .pdf
 ```
 
 ---
@@ -299,7 +260,7 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 
 ### Prerequisites
 * Python 3.10+
-* PyTorch 2.1+ with CUDA acceleration (NVIDIA GPU with $\ge 4\,\text{GB}$ VRAM recommended)
+* PyTorch 2.1+ with CUDA acceleration (NVIDIA GPU with $\ge 4\text{ GB}$ VRAM recommended)
 
 ### 1. Environment Setup
 ```bash
@@ -321,7 +282,7 @@ from src.config import Scaler
 # Load scaler and instantiate model
 scaler = Scaler()
 model = MultiPhysicsFourierResPINN(fourier_dim=128, hidden_dim=192, num_blocks=6)
-checkpoint = torch.load("checkpoints/best_multi_physics_model.pt", map_location="cpu")
+checkpoint = torch.load("models/best_multi_physics_model.pt", map_location="cpu")
 model.load_state_dict(checkpoint["model_state_dict"])
 model.eval()
 

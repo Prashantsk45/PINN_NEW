@@ -30,11 +30,10 @@ plt.rcParams['grid.alpha'] = 0.35
 plt.rcParams['grid.linestyle'] = '--'
 
 # Paths
-DATA_DIR = r"D:\CFD\PINN_NEW\results"
-OUT_DIR = r"D:\CFD\PINN_NEW\figures"
-ARTIFACT_DIR = r"C:\Users\Prash\.gemini\antigravity\brain\1b37821e-7e64-4510-882d-79be53da0f33\figures"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
+OUT_DIR = os.path.join(BASE_DIR, "figures")
 os.makedirs(OUT_DIR, exist_ok=True)
-os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
 # Load Prediction & Audit Data
 pred_csv = os.path.join(DATA_DIR, "phi070_multi_physics_blind_predictions.csv")

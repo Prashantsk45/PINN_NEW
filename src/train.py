@@ -65,10 +65,11 @@ def run_training(num_adam_steps=config.ADAM_STEPS, num_lbfgs_steps=config.LBFGS_
     loss_engine = CombustorPhysicsLoss().to(device)
     sampler = CombustorCollocationSampler()
 
-    checkpoint_dir = r"D:\CFD\PINN_NEW\checkpoints"
-    results_dir = r"D:\CFD\PINN_NEW\results"
-    os.makedirs(checkpoint_dir, exist_ok=True)
-    os.makedirs(results_dir, exist_ok=True)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    model_dir = os.path.join(base_dir, "models")
+    data_dir = os.path.join(base_dir, "data")
+    os.makedirs(model_dir, exist_ok=True)
+    os.makedirs(data_dir, exist_ok=True)
 
     # 3. Collocation Points Initialization
     print(f"Sampling {config.N_PDE_COLLOCATION:,} interior points and {config.N_BC_COLLOCATION:,} boundary points...", flush=True)
@@ -103,7 +104,7 @@ def run_training(num_adam_steps=config.ADAM_STEPS, num_lbfgs_steps=config.LBFGS_
     }
 
     best_val_score = float('inf')
-    best_checkpoint_path = os.path.join(checkpoint_dir, "best_multi_physics_model.pt")
+    best_checkpoint_path = os.path.join(model_dir, "best_multi_physics_model.pt")
     start_step = 1
     
     if resume and os.path.exists(best_checkpoint_path):
@@ -308,7 +309,7 @@ def run_training(num_adam_steps=config.ADAM_STEPS, num_lbfgs_steps=config.LBFGS_
     print(f"\nTOTAL TRAINING RUNTIME: {total_elapsed/60.0:.2f} minutes ({total_elapsed:.1f} seconds).", flush=True)
 
     # 7. Final Checkpointing & SHA-256 Locking
-    final_checkpoint_path = os.path.join(checkpoint_dir, "final_multi_physics_model.pt")
+    final_checkpoint_path = os.path.join(model_dir, "final_multi_physics_model.pt")
     torch.save({
         'model_state_dict': model.state_dict(),
         'total_elapsed_sec': total_elapsed,
@@ -334,7 +335,7 @@ def run_training(num_adam_steps=config.ADAM_STEPS, num_lbfgs_steps=config.LBFGS_
     # Save training history with checksums
     history['sha256_best_model'] = sha_best
     history['sha256_final_model'] = sha_final
-    history_path = os.path.join(results_dir, "multi_physics_training_history.json")
+    history_path = os.path.join(data_dir, "multi_physics_training_history.json")
     with open(history_path, 'w') as f:
         json.dump(history, f, indent=2)
     print(f"Training history saved to: {history_path}", flush=True)
