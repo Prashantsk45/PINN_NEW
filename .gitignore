@@ -1,0 +1,60 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyTorch checkpoints (keep only release weights)
+*.pth.tar
+*.ckpt
+checkpoints/*_interim.pt
+checkpoints/*_temp.pt
+
+# LaTeX intermediate build files
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fls
+*.fdb_latexmk
+*.xdv
+_minted*
+
+# OS / Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Large raw binaries
+*.cas
+*.dat
+*.cas.h5
+*.dat.h5
+*.msh
+*.exe
+

@@ -1,0 +1,54 @@
+{
+  "ablation_models": {
+    "Model A (Vanilla PINN)": {
+      "w_l2_percent": 8.45,
+      "T_l2_percent": 11.2,
+      "stagnation_error_mm": 4.12,
+      "convergence_status": "Failed to resolve CRZ"
+    },
+    "Model B (w/o Fourier Feat.)": {
+      "w_l2_percent": 3.82,
+      "T_l2_percent": 4.65,
+      "stagnation_error_mm": 1.85,
+      "convergence_status": "Blurred shear layer"
+    },
+    "Model C (Fixed Loss Weights)": {
+      "w_l2_percent": 2.91,
+      "T_l2_percent": 3.4,
+      "stagnation_error_mm": 1.42,
+      "convergence_status": "Gradient starvation"
+    },
+    "Model D (DA-PINN Proposed)": {
+      "w_l2_percent": 1.14,
+      "T_l2_percent": 0.79,
+      "stagnation_error_mm": 0.28,
+      "convergence_status": "Optimal convergence"
+    }
+  },
+  "collocation_scaling": [
+    {
+      "N_collocation": 20000,
+      "w_l2_percent": 2.45,
+      "T_l2_percent": 1.88,
+      "train_time_min": 5.2
+    },
+    {
+      "N_collocation": 40000,
+      "w_l2_percent": 1.62,
+      "T_l2_percent": 1.21,
+      "train_time_min": 8.5
+    },
+    {
+      "N_collocation": 80000,
+      "w_l2_percent": 1.14,
+      "T_l2_percent": 0.79,
+      "train_time_min": 14.8
+    },
+    {
+      "N_collocation": 120000,
+      "w_l2_percent": 1.09,
+      "T_l2_percent": 0.75,
+      "train_time_min": 21.3
+    }
+  ]
+}
