@@ -7,13 +7,6 @@
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
 \usepackage{orcidlink}
 
-\makeatletter
-\renewcommand{\bibfont}{%
-  \fontsize{7.5pt}{8.8pt}\selectfont
-  \setlength{\itemsep}{-2.5pt plus 0.2pt}%
-  \setlength{\parskip}{0pt}%
-}
-\makeatother
 
 \begin{document}
 
@@ -294,9 +287,7 @@ $^\ddagger$\footnotesize{Includes downstream post-flame burnout regions ($z \ge 
 \caption{Station-by-station quantitative performance breakdown across seven transverse measurement rakes at $\Phi = 0.70$ ($N = 174$ points per station).}
 \label{tab:station_breakdown}
 \begin{ruledtabular}
-\footnotesize
-\setlength{\tabcolsep}{2.5pt}
-\begin{tabular}{lccccccp{3.1cm}}
+\begin{tabular}{lccccccp{3.2cm}}
 Station & $z$ & $z/D$ & $W_z$ $R^2$ (RMSE) & $V_\theta$ $R^2$ (RMSE) & $T$ $R^2$ (RMSE) & $X_{\text{OH}}$ $R^2$ (RMSE) & Flow \& Reaction Regime \\
 \hline
 \texttt{line-z-5} & $5.0\,\text{mm}$ & $0.059$ & $0.9149$ ($9.21\,\text{m/s}$) & $0.7302$ ($8.56\,\text{m/s}$) & $0.6719$ ($127.8\,\text{K}$) & $0.8926$ ($0.040 \times 10^{-3}$) & Dump plane, annular inflow and ignition \\
