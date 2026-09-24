@@ -237,7 +237,7 @@ Output Heads (3) & Hydro ($u, v, w, p, \nu_t$), Thermal ($T, q''_{\text{wall}}$)
 Trainable Parameters & $526,380$ total weights/biases ($2.1\,\text{MB}$ in FP32) \\
 Interior Collocation & $N_{\text{pde}} = 80,000$ points ($45\%$ concentrated in shear core) \\
 Boundary Collocation & $N_{\text{bc}} = 10,000$ points ($2,500$ each: inlet, dump, wall, exit) \\
-Refinement (RAR) & $N_{\text{rar}} = 20,000$ candidate pool evaluated every 500 epochs \\
+Refinement (RAR) & $N_{\text{rar}} = 20{,}000$ candidate pool evaluated every 500 epochs \\
 Stage 1: AdamW & $2,000$ steps, $\eta_0 = 10^{-3} \to 10^{-4}$ cosine decay, $\|g\|_2 \le 2.0$ \\
 Stage 2: L-BFGS & $1,000$ iterations, history 50, strong Wolfe line search \\
 ReLoBRaLo Controller & $\tau = 0.10, T_{\text{soft}} = 0.10, \alpha_{\text{ema}} = 0.999$, bounds $[0.05, 50.0]$ \\
