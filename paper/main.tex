@@ -387,6 +387,13 @@ The overall combustor aerodynamic pressure drop $\Delta P = \bar{p}_{\text{inlet
 
 Combustor liner durability depends directly on surface heat flux distributions. Figure~\ref{fig:pressure_and_heat_flux}(c) shows the axial variation of wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$) evaluated over 1,527 surface points strictly withheld from training. Near the dump plane ($z < 10\,\text{mm}$), wall heat flux remains below $100\,\text{kW/m}^2$ because the outer recirculation zone isolates the liner from the main reaction zone. As the flame expands radially downstream, hot combustion gases impinge on the liner, causing heat flux to rise to a maximum of $551.4\,\text{kW/m}^2$ in the surrogate and $864.2\,\text{kW/m}^2$ in the benchmark near $z \approx 25\text{--}35\,\text{mm}$. Parity scatter analysis in Figure~\ref{fig:pressure_and_heat_flux}(d) demonstrates an overall $R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$, and $\text{MAE} = 32.0\,\text{kW/m}^2$ (Table~\ref{tab:blind_holdout_metrics}). The predicted distribution identifies the critical axial zone of maximum thermal stress, establishing quantitative boundary conditions for liner cooling and coating life assessments.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
+\caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ 3D wall-time speedup and $> 4.5 \times 10^6\times$ throughput acceleration); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
+\label{fig:scaling_and_speedup}
+\end{figure*}
+
 \subsection{Near-Nozzle Aerodynamic Flashback Margin Evaluation}
 
 Combustor operability on pure hydrogen requires strict resistance against boundary-layer and core flashback. Aerodynamic holding is verified in Figure~\ref{fig:crz_and_flashback}(c) using the local velocity margin index,
@@ -401,13 +408,6 @@ Along the combustor wall and nozzle lip shear layer, fluid velocities remain ele
 \section{Multi-Throttle Operability and Computational Acceleration}
 \label{sec:scaling}
 
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
-\caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ 3D wall-time speedup and $> 4.5 \times 10^6\times$ throughput acceleration); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
-\label{fig:scaling_and_speedup}
-\end{figure*}
-
 Demonstrating parametric generalization across an engine flight envelope requires evaluating the neural surrogate outside discrete training points. The trained network ingests continuous equivalence ratio conditioning $\Phi \in [0.55, 1.00]$ alongside spatial coordinates. Figure~\ref{fig:scaling_and_speedup} evaluates macroscopic aerothermodynamic scaling, computational evaluation speed, and memory footprint across the complete operating range: Idle ($\Phi = 0.55$), Approach ($\Phi = 0.70$, blind test), Cruise ($\Phi = 0.895$), and Takeoff ($\Phi = 1.00$).
 
 Thermal response curves and pressure losses in Figure~\ref{fig:scaling_and_speedup}(a) track macroscopic aerothermodynamic scaling across operating regimes. Peak flame temperatures span $2426.8\,\text{K}$ at lean idle ($\Phi = 0.55$) to $2350.3\,\text{K}$ at stoichiometric takeoff ($\Phi = 1.00$). Unseen approach conditions ($\Phi = 0.70$) yield $2435.7\,\text{K}$ in the neural output, differing by only $8.7\,\text{K}$ ($0.36\%$) from the $2426.9\,\text{K}$ Fluent benchmark. Aerodynamic pressure loss $\Delta P$ scales with total mass throughput [Fig.~\ref{fig:scaling_and_speedup}(a), right axis]. Benchmark pressure drops rise from $1175.8\,\text{Pa}$ at idle to $1462.2\,\text{Pa}$ at takeoff; the neural model tracks this climb, registering $\Delta P = 1276.0\,\text{Pa}$ on the blind approach test against $1312.2\,\text{Pa}$ in Fluent ($2.76\%$ discrepancy). In parallel, area-weighted exit $\text{NO}_x$ emissions fall from $319.2\,\text{ppm}$ at idle down to $28.0\,\text{ppm}$ at takeoff due to residence time shifts, which the kinetics output reproduces within $4.2\%$ across throttle settings.
@@ -418,7 +418,6 @@ In addition to latency reductions, the neural surrogate achieves substantial dat
 
 For onboard aerospace propulsion systems, this combination of sub-second inference and high compression removes the primary computational barrier to deploying real-time digital twins. Rather than interpolating across coarse precomputed look-up tables that fail to enforce Navier-Stokes conservation off-design, the network evaluates continuous physical state variables at arbitrary spatial coordinates. Flight management computers can query localized liner wall temperatures, aerodynamic pressure drops, and radical flame brush boundaries in real time during dynamic throttle transients. Differentiating the surrogate with respect to input parameters also provides direct gradient access for model-predictive engine control, enabling active acoustic suppression and rapid thermal boundary monitoring during flight.
 
-\clearpage
 \section{Conclusions}
 \label{sec:conclusions}
 
