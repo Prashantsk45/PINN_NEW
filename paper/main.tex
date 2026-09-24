@@ -2,6 +2,7 @@
 
 \usepackage{amsmath,amssymb,amsfonts,bm}
 \usepackage{graphicx}
+\graphicspath{{figures/}{./}}
 \usepackage{booktabs}
 \usepackage{siunitx}
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
@@ -215,12 +216,14 @@ with $\alpha_{\text{ema}} = 0.999$, clipped to $[0.05, 50.0]$.
 \end{figure*}
 
 \begin{table*}[t]
+\centering
 \caption{Structural specifications, collocation distributions, and numerical optimization hyperparameters of the multi-physics DA-PINN architecture.}
 \label{tab:hyperparameters}
-\begin{ruledtabular}
-\begin{tabular}{ll}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}ll}
+\toprule
 Parameter / Component & Design Specification \\
-\hline
+\midrule
 Spatial Coordinates & $x = [x, y, z]^T \in \mathbb{R}^3$, normalized $[0, 1]$ \\
 Operating Envelope & $\Phi \in [0.55, 1.00]$ (Train: $0.55, 0.895, 1.00$; Holdout: $0.70$) \\
 Fourier Embeddings & Gaussian Random, $d = 64$ ($128$ features), $\sigma = 2.0$ \\
@@ -235,8 +238,8 @@ Stage 1: AdamW & $2,000$ steps, $\eta_0 = 10^{-3} \to 10^{-4}$ cosine decay, $\|
 Stage 2: L-BFGS & $1,000$ iterations, history 50, strong Wolfe line search \\
 ReLoBRaLo Controller & $\tau = 0.10, T_{\text{soft}} = 0.10, \alpha_{\text{ema}} = 0.999$, bounds $[0.05, 50.0]$ \\
 Hardware \& Runtime & 1x NVIDIA RTX 3060 Laptop GPU ($6\,\text{GB}$), $18.1\,\text{minutes}$ \\
-\end{tabular}
-\end{ruledtabular}
+\bottomrule
+\end{tabular*}
 \end{table*}
 
 Surrogate training executes a two-tier sequence (Table~\ref{tab:hyperparameters}):
@@ -262,12 +265,14 @@ As shown in Figure~\ref{fig:training_convergence_relobralo}(a), the total loss $
 \end{figure*}
 
 \begin{table*}[t]
+\centering
 \caption{Multi-physics blind holdout verification metrics at unseen throttle condition $\Phi = 0.70$, evaluated against ANSYS Fluent benchmark across $N = 1,218$ interior fluid coordinates and $N = 1,527$ combustor liner surface coordinates.}
 \label{tab:blind_holdout_metrics}
-\begin{ruledtabular}
-\begin{tabular}{lcccccc}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lcccccc}
+\toprule
 Physical Field & Symbol & Benchmark Range & DA-PINN Range & $R^2$ Score & RMSE & Relative $L_2$ Error \\
-\hline
+\midrule
 Axial Velocity & $W_z$ & $[-24.17, +137.26]\,\text{m/s}$ & $[-19.90, +111.51]\,\text{m/s}$ & $0.9523$ & $6.10\,\text{m/s}$ & $19.05\%$ \\
 Tangential Velocity & $V_\theta$ & $[-5.33, +47.40]\,\text{m/s}$ & $[-7.06, +61.94]\,\text{m/s}$ & $0.7847$ & $5.31\,\text{m/s}$ & $35.61\%$ \\
 Static Temperature & $T$ & $[428.3, 2411.2]\,\text{K}$ & $[558.7, 2290.0]\,\text{K}$ & $0.9479$ & $143.7\,\text{K}$ & $8.90\%^\dagger$ \\
@@ -277,19 +282,24 @@ Liner Wall Heat Flux & $\|q''_{\text{wall}}\|$ & $[0.0, 864.2]\,\text{kW/m}^2$ &
 Forward Stagnation Point & $z_{\text{stag}}$ & $4.20\,\text{mm}$ & $4.50\,\text{mm}$ & --- & $|\Delta z| = 0.30\,\text{mm}$ & $0.35\%$ \\
 Combustor Pressure Drop & $\Delta P$ & $1312.2\,\text{Pa}$ & $1276.0\,\text{Pa}$ & --- & $|\Delta P| = 36.2\,\text{Pa}$ & $2.76\%$ \\
 Peak Flame Temperature & $T_{\text{max}}$ & $2426.9\,\text{K}$ & $2435.7\,\text{K}$ & --- & $|\Delta T| = 8.7\,\text{K}$ & $0.36\%$ \\
-\end{tabular}
-\end{ruledtabular}
-$^\dagger$\footnotesize{Relative $L_2$ error evaluated strictly across primary flame reaction rakes ($z \le 25\,\text{mm}$) is $1.10\%$ ($\text{RMSE} = 17.8\,\text{K}$).} \\
-$^\ddagger$\footnotesize{Includes downstream post-flame burnout regions ($z \ge 60\,\text{mm}$) where $X_{\mathrm{OH}} \to 0$ compresses statistical variance; within the active flame reaction zone ($z \le 15\,\text{mm}$), $R^2 = 0.9135$, $\text{RMSE} = 0.099 \times 10^{-3}$, and relative $L_2 = 1.85\%$.}
+\bottomrule
+\end{tabular*}
+\begin{flushleft}
+\footnotesize
+$^\dagger$Relative $L_2$ error evaluated strictly across primary flame reaction rakes ($z \le 25\,\text{mm}$) is $1.10\%$ ($\text{RMSE} = 17.8\,\text{K}$). \\
+$^\ddagger$Includes downstream post-flame burnout regions ($z \ge 60\,\text{mm}$) where $X_{\mathrm{OH}} \to 0$ compresses statistical variance; within the active flame reaction zone ($z \le 15\,\text{mm}$), $R^2 = 0.9135$, $\text{RMSE} = 0.099 \times 10^{-3}$, and relative $L_2 = 1.85\%$.
+\end{flushleft}
 \end{table*}
 
 \begin{table*}[t]
+\centering
 \caption{Station-by-station quantitative performance breakdown across seven transverse measurement rakes at $\Phi = 0.70$ ($N = 174$ points per station).}
 \label{tab:station_breakdown}
-\begin{ruledtabular}
-\begin{tabular}{lccccccp{3.2cm}}
+\small
+\begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}lccccccp{3.2cm}}
+\toprule
 Station & $z$ & $z/D$ & $W_z$ $R^2$ (RMSE) & $V_\theta$ $R^2$ (RMSE) & $T$ $R^2$ (RMSE) & $X_{\text{OH}}$ $R^2$ (RMSE) & Flow \& Reaction Regime \\
-\hline
+\midrule
 \texttt{line-z-5} & $5.0\,\text{mm}$ & $0.059$ & $0.9149$ ($9.21\,\text{m/s}$) & $0.7302$ ($8.56\,\text{m/s}$) & $0.6719$ ($127.8\,\text{K}$) & $0.8926$ ($0.040 \times 10^{-3}$) & Dump plane, annular inflow and ignition \\
 \texttt{line-z-10} & $10.0\,\text{mm}$ & $0.118$ & $0.9827$ ($3.82\,\text{m/s}$) & $0.8633$ ($5.37\,\text{m/s}$) & $0.5802$ ($114.8\,\text{K}$) & $0.9135$ ($0.063 \times 10^{-3}$) & Recirculation bubble boundary inception \\
 \texttt{line-z-15} & $15.0\,\text{mm}$ & $0.176$ & $0.9805$ ($3.67\,\text{m/s}$) & $0.8492$ ($4.26\,\text{m/s}$) & $0.8509$ ($90.8\,\text{K}$) & $0.9049$ ($0.099 \times 10^{-3}$) & Inner shear layer and intense swirl \\
@@ -297,9 +307,12 @@ Station & $z$ & $z/D$ & $W_z$ $R^2$ (RMSE) & $V_\theta$ $R^2$ (RMSE) & $T$ $R^2$
 \texttt{line-z-40} & $40.0\,\text{mm}$ & $0.471$ & $0.9687$ ($3.72\,\text{m/s}$) & $0.2322$ ($2.22\,\text{m/s}$) & $0.9389$ ($120.0\,\text{K}$) & $0.6141$ ($1.648 \times 10^{-3}$) & Recirculation closure and burnout \\
 \texttt{line-z-60} & $60.0\,\text{mm}$ & $0.706$ & $0.9487$ ($6.14\,\text{m/s}$) & $-0.2394^\dagger$ ($2.09\,\text{m/s}$) & $0.3136$ ($205.6\,\text{K}$) & $-1.9390^\dagger$ ($1.925 \times 10^{-3}$) & Downstream swirl dissipation and mixing \\
 \texttt{line-z-80} & $80.0\,\text{mm}$ & $0.941$ & $0.9432$ ($5.93\,\text{m/s}$) & $0.5730$ ($2.56\,\text{m/s}$) & $0.2417$ ($223.7\,\text{K}$) & $-3.6346^\dagger$ ($2.369 \times 10^{-3}$) & Combustor exit and product plateau \\
-\end{tabular}
-\end{ruledtabular}
-$^\dagger$\footnotesize{In the downstream wake ($z \ge 60\,\text{mm}$), mean tangential velocity decays below $2.5\,\text{m/s}$ and OH radicals drop to near-zero background levels ($\sim 10^{-5}$), compressing statistical variance and producing negative $R^2$ values despite small absolute errors ($\text{RMSE} \approx 2.1\,\text{m/s}$ and $1.9 \times 10^{-3}$).}
+\bottomrule
+\end{tabular*}
+\begin{flushleft}
+\footnotesize
+$^\dagger$In the downstream wake ($z \ge 60\,\text{mm}$), mean tangential velocity decays below $2.5\,\text{m/s}$ and OH radicals drop to near-zero background levels ($\sim 10^{-5}$), compressing statistical variance and producing negative $R^2$ values despite small absolute errors ($\text{RMSE} \approx 2.1\,\text{m/s}$ and $1.9 \times 10^{-3}$).
+\end{flushleft}
 \end{table*}
 
 \begin{figure*}[t]
