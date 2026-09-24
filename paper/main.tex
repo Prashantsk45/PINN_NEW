@@ -4,15 +4,6 @@
 \usepackage{graphicx}
 \graphicspath{{figures/}{./}}
 \usepackage{booktabs}
-\usepackage{dblfloatfix}
-\renewcommand{\topfraction}{0.95}
-\renewcommand{\dbltopfraction}{0.95}
-\renewcommand{\textfraction}{0.05}
-\renewcommand{\floatpagefraction}{0.90}
-\renewcommand{\dblfloatpagefraction}{0.90}
-\setcounter{topnumber}{2}
-\setcounter{dbltopnumber}{1}
-
 \usepackage{siunitx}
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
 \usepackage{orcidlink}
@@ -259,22 +250,16 @@ Surrogate training executes a two-tier sequence (Table~\ref{tab:hyperparameters}
 
 As shown in Figure~\ref{fig:training_convergence_relobralo}(a), the total loss $\mathcal{L}_{\text{total}}$ decreases monotonically across four decades from 233.3 down to 0.16. Dynamically adapted ReLoBRaLo weight trajectories $\lambda_i(t)$ [Fig.~\ref{fig:training_convergence_relobralo}(b)] progressively adjust the relative importance of individual loss components, preventing gradient domination by stiff chemical kinetics and momentum terms. On independent validation splits during training, relative $L_2$ errors converge below $5\%$ across all fields: axial velocity ($3.28\%$), swirl velocity ($4.01\%$), pressure ($1.10\%$), temperature ($1.50\%$), and OH radicals ($1.85\%$), while comprehensive zero-shot holdout metrics on the unseen $\Phi = 0.70$ operating condition are detailed in Table~\ref{tab:blind_holdout_metrics}. Training completes in 18.1 minutes on a single NVIDIA RTX 3060 Laptop GPU.
 
-\section{Results and Discussion: Multi-Physics Blind Holdout Verification}
-\label{sec:results}
-
-\subsection{Transverse Velocity Field Reconstruction and Benchmark Parity}
-\label{subsec:velocity_profiles}
-
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/figure_4_axial_velocity_profiles.pdf}
+\includegraphics[width=\textwidth]{figures/figure_4_axial_velocity_profiles.pdf}
 \caption{Transverse radial profiles of axial velocity $W_z(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) and parity correlation scatter for the unseen approach operating condition ($\Phi = 0.70$). Discrete symbols represent ANSYS Fluent 2025 R2 benchmark data; solid lines denote DA-PINN predictions.}
 \label{fig:axial_velocity_profiles}
 \end{figure*}
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/figure_5_tangential_velocity_profiles.pdf}
+\includegraphics[width=\textwidth]{figures/figure_5_tangential_velocity_profiles.pdf}
 \caption{Transverse radial profiles of tangential swirl velocity $V_\theta(r)$ across all seven measurement stations and corresponding parity correlation scatter for the unseen approach condition ($\Phi = 0.70$).}
 \label{fig:swirl_velocity_profiles}
 \end{figure*}
@@ -330,63 +315,31 @@ $^\dagger$In the downstream wake ($z \ge 60\,\text{mm}$), mean tangential veloci
 \end{flushleft}
 \end{table*}
 
-Quantitative multi-physics verification is conducted at the unseen approach operating condition ($\Phi = 0.70$), which was completely withheld from training. Transverse radial profiles of axial velocity $W_z(r)$ and tangential swirl velocity $V_\theta(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) are compared against high-fidelity ANSYS Fluent 2025 R2 benchmark data in Figures~\ref{fig:axial_velocity_profiles} and~\ref{fig:swirl_velocity_profiles}. The overall multi-physics holdout evaluation metrics across all 1,218 interior fluid coordinates and 1,527 liner wall surface coordinates are summarized in Table~\ref{tab:blind_holdout_metrics}, while Table~\ref{tab:station_breakdown} details the station-by-station quantitative breakdown. 
-
-As demonstrated in Figure~\ref{fig:axial_velocity_profiles}, the neural surrogate accurately captures the intense annular forward jet ($W_z > 100\,\text{m/s}$) exiting the nozzle lip, the strong negative reverse flow in the central recirculation core ($W_z \approx -24\,\text{m/s}$), and the corner recirculation zones, achieving an overall determination coefficient $R^2 = 0.9523$ and root-mean-square error $\text{RMSE} = 6.10\,\text{m/s}$ across the entire domain. The tangential velocity profiles in Figure~\ref{fig:swirl_velocity_profiles} resolve the rankine-like vortex structure, exhibiting peak swirl velocities exceeding $47\,\text{m/s}$ near $r \approx 10\,\text{mm}$ at $z = 5\,\text{mm}$ and decaying radially toward the walls, adhering to the enforced radial swirl equilibrium constraint.
-
-\subsection{Static Temperature Distribution and Thermal Core Resolution}
-\label{subsec:temperature_profiles}
-
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/figure_6_static_temperature_profiles.pdf}
-\caption{Transverse radial profiles of static temperature $T(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) and parity correlation scatter for the unseen approach condition ($\Phi = 0.70$). The model resolves the M-shaped thermal distribution near the injector face and the high-temperature product core.}
-\label{fig:static_temperature_profiles}
-\end{figure*}
-
-Radial traverses of static temperature $T(r)$ across the seven axial stations are displayed in Figure~\ref{fig:static_temperature_profiles}. The temperature field displays distinct physical zones that reflect the coupled interaction between turbulent mixing and finite-rate chemical kinetics. Near the injector dump step ($z = 5.0\,\text{mm}$ and $10.0\,\text{mm}$), the temperature profile displays a characteristic M-shaped distribution. Cold unburned reactants ($T \approx 300\text{--}500\,\text{K}$) enter through the annular nozzle passage ($6\,\text{mm} \le r \le 15\,\text{mm}$), flanked on both sides by high-temperature combustion products: the inner shear layer adjoining the hot central recirculation zone ($r < 6\,\text{mm}$) and the outer recirculation zone formed in the step corner ($r > 25\,\text{mm}$).
-
-Thermal predictions closely mirror these localized gradients across all radii. Across all 1,218 holdout coordinates, the temperature field achieves $R^2 = 0.9479$, $\text{RMSE} = 143.7\,\text{K}$, $\text{MAE} = 103.9\,\text{K}$, and a relative $L_2$ error of $8.90\%$ (Table~\ref{tab:blind_holdout_metrics}). On independent validation splits, relative $L_2$ error reaches $1.50\%$. Table~\ref{tab:station_breakdown} confirms the strongest fit at $z = 25.0\,\text{mm}$ within the primary heat release zone ($R^2 = 0.9528$, $\text{RMSE} = 96.6\,\text{K}$). Further downstream, the twin annular flame sheets coalesce into a continuous thermal core at roughly $2200\,\text{K}$. Peak flame temperature in the domain evaluates to $T_{\text{max}} = 2435.7\,\text{K}$, within $8.7\,\text{K}$ ($0.36\%$) of the $2426.9\,\text{K}$ Fluent benchmark.
-
-\subsection{Hydroxyl Radical Reaction Structure and Chemical Kinetics}
-\label{subsec:oh_profiles}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/figure_7_chemical_kinetics_oh.pdf}
-\caption{Transverse radial profiles of hydroxyl radical mole fraction $X_{\text{OH}}(r)$ across all seven stations and parity correlation scatter at $\Phi = 0.70$, resolving steep sub-millimeter reaction gradients enabled by Gaussian Fourier feature embeddings.}
-\label{fig:chemical_kinetics_oh}
-\end{figure*}
-
-Figure~\ref{fig:chemical_kinetics_oh} plots the transverse hydroxyl radical profiles $X_{\text{OH}}(r)$. High radical pools mark the intense chemical activity along the flame brush. At $z = 5.0$, $10.0$, and $15.0\,\text{mm}$, sub-millimeter concentration gradients delineate the inner shear boundary, tracking accelerated hydrogen oxidation driven by turbulent shear mixing.
-
-Fourier feature mapping prevents spectral bias from smoothing out these chemical interfaces, avoiding numerical oscillations and artificial flame broadening. In the active flame zone ($z \le 15.0\,\text{mm}$), the model demonstrates strong agreement with numerical truth: $R^2 = 0.8926$ at $z = 5.0\,\text{mm}$, $0.9135$ at $z = 10.0\,\text{mm}$, and $0.9049$ at $z = 15.0\,\text{mm}$ (Table~\ref{tab:station_breakdown}). Peak OH mole fraction reaches $4.51 \times 10^{-3}$ in the surrogate compared to $7.61 \times 10^{-3}$ in the reference simulation. Farther downstream ($z \ge 60.0\,\text{mm}$), radical recombination drives OH mole fractions toward equilibrium background levels ($\sim 10^{-5}$). In this downstream region, low statistical variance results in negative $R^2$ values, although absolute concentration errors remain minimal ($\text{RMSE} \approx 1.9 \times 10^{-3}$).
-
-\subsection{Static Pressure Field and Combustor Liner Thermal Loading}
-\label{subsec:pressure_heatflux}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/figure_8_pressure_and_heat_flux.pdf}
-\caption{Aerodynamic static pressure and combustor liner thermal loading verification at $\Phi = 0.70$: (a) transverse radial static pressure profiles $p(r)$ across three axial stations ($z = 5, 15, 25\,\text{mm}$) showing vortex core depression; (b) static pressure parity correlation scatter against benchmark CFD ($R^2 = 0.9932$, $\text{RMSE} = 7.06\,\text{Pa}$); (c) axial distribution of combustor liner wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$); and (d) liner heat flux parity scatter across 1,527 unseen surface coordinates ($R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$).}
-\label{fig:pressure_and_heat_flux}
-\end{figure*}
-
-Radial static pressure profiles $p(r)$ across the measurement stations are presented in Figure~\ref{fig:pressure_and_heat_flux}(a). Strong swirling motion generates a pronounced radial pressure depression along the combustor centerline, where static pressure drops to approximately $50\text{--}100\,\text{Pa}$ relative to the outer wall pressure. This depression balances the centripetal acceleration through the radial momentum constraint, $\partial p / \partial r \approx \rho V_\theta^2 / r$. The neural output reproduces this core pressure drop at each station, satisfying momentum balance without unphysical baseline drift. Parity correlation across all holdout coordinates [Fig.~\ref{fig:pressure_and_heat_flux}(b)] confirms exceptional pressure fidelity ($R^2 = 0.9932$, $\text{RMSE} = 7.06\,\text{Pa}$, relative $L_2 = 7.97\%$).
-
-The overall combustor aerodynamic pressure drop $\Delta P = \bar{p}_{\text{inlet}} - \bar{p}_{\text{outlet}}$ is constrained during training by the global pressure anchor loss term. Across the unseen approach condition, the numerical benchmark records a total pressure drop of $\Delta P = 1312.2\,\text{Pa}$. The surrogate predicts $\Delta P = 1276.0\,\text{Pa}$, resulting in an absolute discrepancy of $\Delta P = 36.2\,\text{Pa}$ ($2.76\%$ relative error). This pressure balance confirms that the surrogate preserves global aerodynamic resistance, which is critical for matching turbine inlet boundary conditions in engine cycle calculations.
-
-Combustor liner durability depends directly on surface heat flux distributions. Figure~\ref{fig:pressure_and_heat_flux}(c) shows the axial variation of wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$) evaluated over 1,527 surface points strictly withheld from training. Near the dump plane ($z < 10\,\text{mm}$), wall heat flux remains below $100\,\text{kW/m}^2$ because the outer recirculation zone isolates the liner from the main reaction zone. As the flame expands radially downstream, hot combustion gases impinge on the liner, causing heat flux to rise to a maximum of $551.4\,\text{kW/m}^2$ in the surrogate and $864.2\,\text{kW/m}^2$ in the benchmark near $z \approx 25\text{--}35\,\text{mm}$. Parity scatter analysis in Figure~\ref{fig:pressure_and_heat_flux}(d) demonstrates an overall $R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$, and $\text{MAE} = 32.0\,\text{kW/m}^2$ (Table~\ref{tab:blind_holdout_metrics}). The predicted distribution identifies the critical axial zone of maximum thermal stress, establishing quantitative boundary conditions for liner cooling and coating life assessments.
-
-\subsection{Central Recirculation Zone Topology and Aerodynamic Flashback Margin}
-\label{subsec:crz_flashback}
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=0.92\textwidth]{figures/figure_9_crz_and_flashback.pdf}
+\includegraphics[width=\textwidth]{figures/figure_9_crz_and_flashback.pdf}
 \caption{Aerodynamic flame stabilization and flashback safety margin verification at $\Phi = 0.70$: (a) centerline axial velocity $W_z(r=0, z)$ tracking forward stagnation point ($z_{\text{stag}} = 4.50\,\text{mm}$ vs $4.20\,\text{mm}$ CFD), (b) centerline temperature recirculation profile $T(r=0, z)$, and (c) axial boundary layer flashback margin index $[U_{\text{local}} / S_{\text{T}}]$.}
 \label{fig:crz_and_flashback}
 \end{figure*}
+
+\section{Results and Discussion: Multi-Physics Holdout Verification}
+\label{sec:results}
+
+Evaluating neural surrogate fidelity for reacting swirl flows demands rigorous holdout verification across interacting aerodynamic, thermal, and chemical reaction scales. In this investigation, the approach flight condition at an equivalence ratio of $\Phi = 0.70$ is strictly withheld during training to serve as an unseen multi-physics benchmark. The surrogate predictions are evaluated against high-fidelity ANSYS Fluent 2025 R2 finite-volume solutions across 1,218 interior fluid verification nodes distributed over seven transverse rakes, alongside 1,527 discrete surface points along the combustor liner.
+
+\subsection{Axial and Swirl Velocity Field Traverses and Parity Correlation}
+
+The hydrodynamic structure of the dual-swirl combustor is governed by the interaction between the high-velocity annular jet issuing from the swirler and the central vortex breakdown core. Transverse radial profiles of axial velocity $W_z(r)$ across all seven axial stations from $z = 5.0\,\text{mm}$ ($z/D = 0.059$) immediately downstream of the dump step to $z = 80.0\,\text{mm}$ ($z/D = 0.941$) near the combustor exit are presented in Figure~\ref{fig:axial_velocity_profiles}. 
+
+At the initial measurement station ($z = 5.0\,\text{mm}$), the annular jet forms a distinct high-velocity ring between radial coordinates of $6\,\text{mm}$ and $15\,\text{mm}$. Peak forward axial velocity reaches $+111.51\,\text{m/s}$ in the network solution, tracking the $+137.26\,\text{m/s}$ jet profile obtained from the reference CFD calculation. Closer to the centerline ($r < 6\,\text{mm}$), strong centrifugal forces from the $S_g = 0.85$ swirl generate an adverse axial pressure gradient, turning the core fluid upstream into a Central Recirculation Zone (CRZ). Here, negative axial velocities reach $-19.90\,\text{m/s}$ in the surrogate, resolving the $-24.17\,\text{m/s}$ reverse flow trough established by the benchmark simulation.
+
+Across all 1,218 fluid holdout points, axial velocity predictions demonstrate high correlation with the benchmark data, achieving an overall coefficient of determination $R^2 = 0.9523$, a root-mean-square error $\text{RMSE} = 6.10\,\text{m/s}$, and a mean absolute error $\text{MAE} = 4.11\,\text{m/s}$ (Table~\ref{tab:blind_holdout_metrics}). On independent random holdout evaluations, the relative $L_2$ error remains below $3.28\%$. Inspection of the station-by-station breakdown in Table~\ref{tab:station_breakdown} confirms that axial velocity fidelity remains elevated across every transverse station: $R^2 = 0.9149$ at $z = 5.0\,\text{mm}$, increasing to $0.9827$ at $z = 10.0\,\text{mm}$, $0.9805$ at $z = 15.0\,\text{mm}$, and $0.9729$ at $z = 25.0\,\text{mm}$. Downstream of the recirculation zone closure ($z \ge 40.0\,\text{mm}$), the network maintains $R^2$ values exceeding $0.94$, confirming that the Favre-averaged continuity and axial momentum constraints prevent artificial momentum dissipation.
+
+Tangential swirl velocity $V_\theta(r)$ traverses across the seven stations are illustrated in Figure~\ref{fig:swirl_velocity_profiles}. The co-swirling and counter-swirling streams produce strong rotational motion, reaching peak tangential velocities of $+61.94\,\text{m/s}$ in the neural model and $+47.40\,\text{m/s}$ in the CFD solution. Over the entire interior domain, the swirl field exhibits an overall $R^2 = 0.7847$, $\text{RMSE} = 5.31\,\text{m/s}$, and $\text{MAE} = 3.31\,\text{m/s}$ (Table~\ref{tab:blind_holdout_metrics}). In the active swirl generation zone ($z = 10\text{--}25\,\text{mm}$), where centrifugal acceleration governs flow stability, the surrogate maintains strong local correlation ($R^2 = 0.8633$ at $z = 10.0\,\text{mm}$, $0.8492$ at $z = 15.0\,\text{mm}$, and $0.8136$ at $z = 25.0\,\text{mm}$). 
+
+In the downstream wake region ($z \ge 60.0\,\text{mm}$), viscous dissipation and turbulent mixing reduce mean tangential velocity to less than $2.5\,\text{m/s}$. Because the total statistical variance of the true velocity profile in this downstream zone is compressed by an order of magnitude, the mathematical $R^2$ metric decreases despite the absolute physical discrepancies remaining small ($\text{RMSE} \approx 2.09\text{--}2.56\,\text{m/s}$). Enforcing the radial momentum balance in the composite loss function prevents the swirl velocity from collapsing toward an unphysical zero-swirl state, ensuring correct cross-stream angular momentum transport throughout the combustor.
+
+\subsection{Central Recirculation Zone Topology and Stagnation Point Tracking}
 
 Flame stabilization in swirling gas turbine combustors relies on aerodynamically anchored recirculation bubbles rather than mechanical bluff bodies. When the geometric swirl number surpasses the critical breakdown threshold ($S_g = 0.85 > S_c \approx 0.6$), the adverse axial pressure gradient along the centerline causes the swirling vortex core to undergo vortex breakdown, forming an internal stagnation bubble~\cite{syred1974combustion}. Figure~\ref{fig:crz_and_flashback}(a) shows the centerline axial velocity distribution $W_z(r=0, z)$ and the spatial tracking of the forward stagnation point.
 
@@ -394,22 +347,65 @@ The forward stagnation point $z_{\text{stag}}$, defined as the axial position al
 
 Downstream of the forward stagnation point, the centerline flow accelerates in the upstream direction, reaching a minimum axial velocity of approximately $-24\,\text{m/s}$ near $z \approx 15\,\text{mm}$. The recirculation bubble extends axially to approximately $z \approx 42\text{--}45\,\text{mm}$, where the rear stagnation point closes the recirculating cell. Centerline thermal profiles in Figure~\ref{fig:crz_and_flashback}(b) illustrate that hot combustion products at temperatures between $2200\,\text{K}$ and $2290\,\text{K}$ are transported back toward the nozzle face by this recirculating motion. This convective enthalpy recirculation provides a continuous thermal ignition source that ignites the incoming unburned hydrogen-air mixture, ensuring flame anchoring across varying throttle settings.
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_6_static_temperature_profiles.pdf}
+\caption{Transverse radial profiles of static temperature $T(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) and parity correlation scatter for the unseen approach condition ($\Phi = 0.70$). The model resolves the M-shaped thermal distribution near the injector face and the high-temperature product core.}
+\label{fig:static_temperature_profiles}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_7_chemical_kinetics_oh.pdf}
+\caption{Transverse radial profiles of hydroxyl radical mole fraction $X_{\text{OH}}(r)$ across all seven stations and parity correlation scatter at $\Phi = 0.70$, resolving steep sub-millimeter reaction gradients enabled by Gaussian Fourier feature embeddings.}
+\label{fig:chemical_kinetics_oh}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_8_pressure_and_heat_flux.pdf}
+\caption{Aerodynamic static pressure and combustor liner thermal loading verification at $\Phi = 0.70$: (a) transverse radial static pressure profiles $p(r)$ across three axial stations ($z = 5, 15, 25\,\text{mm}$) showing vortex core depression; (b) static pressure parity correlation scatter against benchmark CFD ($R^2 = 0.9932$, $\text{RMSE} = 7.06\,\text{Pa}$); (c) axial distribution of combustor liner wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$); and (d) liner heat flux parity scatter across 1,527 unseen surface coordinates ($R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$).}
+\label{fig:pressure_and_heat_flux}
+\end{figure*}
+
+\subsection{Static Temperature Distribution and Hydroxyl Radical Reaction Structure}
+
+Radial traverses of static temperature $T(r)$ across the seven axial stations are displayed in Figure~\ref{fig:static_temperature_profiles}. The temperature field displays distinct physical zones that reflect the coupled interaction between turbulent mixing and finite-rate chemical kinetics. Near the injector dump step ($z = 5.0\,\text{mm}$ and $10.0\,\text{mm}$), the temperature profile displays a characteristic M-shaped distribution. Cold unburned reactants ($T \approx 300\text{--}500\,\text{K}$) enter through the annular nozzle passage ($6\,\text{mm} \le r \le 15\,\text{mm}$), flanked on both sides by high-temperature combustion products: the inner shear layer adjoining the hot central recirculation zone ($r < 6\,\text{mm}$) and the outer recirculation zone formed in the step corner ($r > 25\,\text{mm}$).
+
+Thermal predictions closely mirror these localized gradients across all radii. Across all 1,218 holdout coordinates, the temperature field achieves $R^2 = 0.9479$, $\text{RMSE} = 143.7\,\text{K}$, $\text{MAE} = 103.9\,\text{K}$, and a relative $L_2$ error of $8.90\%$ (Table~\ref{tab:blind_holdout_metrics}). On independent validation splits, relative $L_2$ error reaches $1.50\%$. Table~\ref{tab:station_breakdown} confirms the strongest fit at $z = 25.0\,\text{mm}$ within the primary heat release zone ($R^2 = 0.9528$, $\text{RMSE} = 96.6\,\text{K}$). Further downstream, the twin annular flame sheets coalesce into a continuous thermal core at roughly $2200\,\text{K}$. Peak flame temperature in the domain evaluates to $T_{\text{max}} = 2435.7\,\text{K}$, within $8.7\,\text{K}$ ($0.36\%$) of the $2426.9\,\text{K}$ Fluent benchmark.
+
+Figure~\ref{fig:chemical_kinetics_oh} plots the transverse hydroxyl radical profiles $X_{\text{OH}}(r)$. High radical pools mark the intense chemical activity along the flame brush. At $z = 5.0$, $10.0$, and $15.0\,\text{mm}$, sub-millimeter concentration gradients delineate the inner shear boundary, tracking accelerated hydrogen oxidation driven by turbulent shear mixing.
+
+Fourier feature mapping prevents spectral bias from smoothing out these chemical interfaces, avoiding numerical oscillations and artificial flame broadening. In the active flame zone ($z \le 15.0\,\text{mm}$), the model demonstrates strong agreement with numerical truth: $R^2 = 0.8926$ at $z = 5.0\,\text{mm}$, $0.9135$ at $z = 10.0\,\text{mm}$, and $0.9049$ at $z = 15.0\,\text{mm}$ (Table~\ref{tab:station_breakdown}). Peak OH mole fraction reaches $4.51 \times 10^{-3}$ in the surrogate compared to $7.61 \times 10^{-3}$ in the reference simulation. Farther downstream ($z \ge 60.0\,\text{mm}$), radical recombination drives OH mole fractions toward equilibrium background levels ($\sim 10^{-5}$). In this downstream region, low statistical variance results in negative $R^2$ values, although absolute concentration errors remain minimal ($\text{RMSE} \approx 1.9 \times 10^{-3}$).
+
+\subsection{Static Pressure Field and Combustor Liner Thermal Loading}
+
+Radial static pressure profiles $p(r)$ across the measurement stations are presented in Figure~\ref{fig:pressure_and_heat_flux}(a). Strong swirling motion generates a pronounced radial pressure depression along the combustor centerline, where static pressure drops to approximately $50\text{--}100\,\text{Pa}$ relative to the outer wall pressure. This depression balances the centripetal acceleration through the radial momentum constraint, $\partial p / \partial r \approx \rho V_\theta^2 / r$. The neural output reproduces this core pressure drop at each station, satisfying momentum balance without unphysical baseline drift. Parity correlation across all holdout coordinates [Fig.~\ref{fig:pressure_and_heat_flux}(b)] confirms exceptional pressure fidelity ($R^2 = 0.9932$, $\text{RMSE} = 7.06\,\text{Pa}$, relative $L_2 = 7.97\%$).
+
+The overall combustor aerodynamic pressure drop $\Delta P = \bar{p}_{\text{inlet}} - \bar{p}_{\text{outlet}}$ is constrained during training by the global pressure anchor loss term. Across the unseen approach condition, the numerical benchmark records a total pressure drop of $\Delta P = 1312.2\,\text{Pa}$. The surrogate predicts $\Delta P = 1276.0\,\text{Pa}$, resulting in an absolute discrepancy of $\Delta P = 36.2\,\text{Pa}$ ($2.76\%$ relative error). This pressure balance confirms that the surrogate preserves global aerodynamic resistance, which is critical for matching turbine inlet boundary conditions in engine cycle calculations.
+
+Combustor liner durability depends directly on surface heat flux distributions. Figure~\ref{fig:pressure_and_heat_flux}(c) shows the axial variation of wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$) evaluated over 1,527 surface points strictly withheld from training. Near the dump plane ($z < 10\,\text{mm}$), wall heat flux remains below $100\,\text{kW/m}^2$ because the outer recirculation zone isolates the liner from the main reaction zone. As the flame expands radially downstream, hot combustion gases impinge on the liner, causing heat flux to rise to a maximum of $551.4\,\text{kW/m}^2$ in the surrogate and $864.2\,\text{kW/m}^2$ in the benchmark near $z \approx 25\text{--}35\,\text{mm}$. Parity scatter analysis in Figure~\ref{fig:pressure_and_heat_flux}(d) demonstrates an overall $R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$, and $\text{MAE} = 32.0\,\text{kW/m}^2$ (Table~\ref{tab:blind_holdout_metrics}). The predicted distribution identifies the critical axial zone of maximum thermal stress, establishing quantitative boundary conditions for liner cooling and coating life assessments.
+
+\subsection{Near-Nozzle Aerodynamic Flashback Margin Evaluation}
+
 Combustor operability on pure hydrogen requires strict resistance against boundary-layer and core flashback. Aerodynamic holding is verified in Figure~\ref{fig:crz_and_flashback}(c) using the local velocity margin index,
 \begin{equation}
     M_{\text{flash}}(z) = \frac{U_{\text{local}}(z)}{S_{\text{T}}(z)}
     \label{eq:flashback_margin}
 \end{equation}
-evaluated from local convective speed against turbulent flame speed $S_{\text{T}}$. Along the combustor wall and nozzle lip shear layer, fluid velocities remain elevated due to the high-momentum annular injection. The bulk centerline and shear layer flashback margin predicted by the surrogate is $[U_{\text{local}} / S_{\text{T}}] = 4.65$ (CFD: $4.72$), with localized near-wall minima remaining strictly safe at $[U_{\text{local}} / S_{\text{T}}]_{\text{min}} = 1.41 > 1.0$ along the nozzle lip [Fig.~\ref{fig:crz_and_flashback}(c)]. Values of $M_{\text{flash}}$ strictly exceed unity across the entire domain, demonstrating that convective velocities outpace turbulent flame propagation and confirming complete flashback immunity under approach conditions.
+evaluated from local convective speed against turbulent flame speed $S_{\text{T}}$.
 
-\section{Multi-Throttle Operability and Computational Acceleration}
-\label{sec:scaling}
+Along the combustor wall and nozzle lip shear layer, fluid velocities remain elevated due to the high-momentum annular injection. The bulk centerline and shear layer flashback margin predicted by the surrogate is $[U_{\text{local}} / S_{\text{T}}] = 4.65$ (CFD: $4.72$), with localized near-wall minima remaining strictly safe at $[U_{\text{local}} / S_{\text{T}}]_{\text{min}} = 1.41 > 1.0$ along the nozzle lip [Fig.~\ref{fig:crz_and_flashback}(c)]. Values of $M_{\text{flash}}$ strictly exceed unity across the entire domain, demonstrating that convective velocities outpace turbulent flame propagation and confirming complete flashback immunity under approach conditions.
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=0.92\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
+\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
 \caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ 3D wall-time speedup and $> 4.5 \times 10^6\times$ throughput acceleration); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
 \label{fig:scaling_and_speedup}
 \end{figure*}
+
+\section{Multi-Throttle Operability and Computational Acceleration}
+\label{sec:scaling}
 
 Demonstrating parametric generalization across an engine flight envelope requires evaluating the neural surrogate outside discrete training points. The trained network ingests continuous equivalence ratio conditioning $\Phi \in [0.55, 1.00]$ alongside spatial coordinates. Figure~\ref{fig:scaling_and_speedup} evaluates macroscopic aerothermodynamic scaling, computational evaluation speed, and memory footprint across the complete operating range: Idle ($\Phi = 0.55$), Approach ($\Phi = 0.70$, blind test), Cruise ($\Phi = 0.895$), and Takeoff ($\Phi = 1.00$).
 
@@ -420,6 +416,8 @@ Computational throughput benchmarks between full finite-volume CFD and the neura
 In addition to latency reductions, the neural surrogate achieves substantial data compression [Fig.~\ref{fig:scaling_and_speedup}(c)]. The raw multi-throttle CFD solution dataset occupies $14.8\,\text{GB}$ across disk meshes, solution vectors, and intermediate checkpoints. In contrast, the complete 6-block Fourier-ResPINN weights and biases require $2.1\,\text{MB}$ in single-precision floating-point format ($526,380$ trainable parameters). This yields a memory compression factor greater than $7,000\times$.
 
 For onboard aerospace propulsion systems, this combination of sub-second inference and high compression removes the primary computational barrier to deploying real-time digital twins. Rather than interpolating across coarse precomputed look-up tables that fail to enforce Navier-Stokes conservation off-design, the network evaluates continuous physical state variables at arbitrary spatial coordinates. Flight management computers can query localized liner wall temperatures, aerodynamic pressure drops, and radical flame brush boundaries in real time during dynamic throttle transients. Differentiating the surrogate with respect to input parameters also provides direct gradient access for model-predictive engine control, enabling active acoustic suppression and rapid thermal boundary monitoring during flight.
+
+
 
 \clearpage
 \section{Conclusions}
@@ -437,7 +435,7 @@ Future research will extend this physics-informed architecture to unsteady Large
 The author declares that he has no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
 
 \section*{Data and Code Availability}
-The complete PyTorch source code implementation, trained Fourier-ResPINN model checkpoints, loss optimization scripts, and ANSYS Fluent holdout validation datasets supporting the findings of this study are openly available on GitHub at \href{https://github.com/Prashantsk45/PINN_NEW}{https://github.com/Prashantsk45/PINN\_NEW} and permanently archived on Figshare at \href{https://doi.org/10.6084/m9.figshare.33986668}{doi:\allowbreak 10.6084/\allowbreak m9.\allowbreak figshare.\allowbreak 33986668}~\cite{kamble2026dataset}.
+The complete PyTorch source code implementation, trained Fourier-ResPINN model checkpoints, loss optimization scripts, and ANSYS Fluent holdout validation datasets supporting the findings of this study are openly available on GitHub at \href{https://github.com/Prashantsk45/PINN\_NEW}{https://github.com/Prashantsk45/PINN\_NEW} and permanently archived on Figshare at \href{https://doi.org/10.6084/m9.figshare.33986668}{doi:\allowbreak 10.6084/\allowbreak m9.\allowbreak figshare.\allowbreak 33986668}~\cite{kamble2026dataset}.
 
 \begingroup
 \sloppy
