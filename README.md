@@ -253,18 +253,17 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 ├── LICENSE                             # Open-source MIT License
 ├── README.md                           # Master repository documentation & figure showcase
 ├── requirements.txt                    # Minimal scientific & deep learning dependencies
-├── main.tex                            # Primary RevTeX 4-2 research manuscript (15 pages)
-├── main.pdf                            # Compiled publication PDF with all 10 embedded vector figures
 │
-├── config.py                           # Physical scales, dimensionless constants & hyperparameters
-├── network.py                          # Gaussian Fourier projection, ResNet trunk & decoupled heads
-├── physics_loss.py                     # Navier-Stokes Favre momentum, continuity, swirl & kinetics
-├── relobralo.py                        # Relative Loss Balancing with Random Lookback controller
-├── collocation_sampler.py              # 4D Latin Hypercube Sampling & RAR adaptive allocation
-├── data_loader.py                      # Multi-throttle CFD benchmark data ingestion engine
-├── train.py                            # Two-stage AdamW + Quasi-Newton L-BFGS master training loop
-├── evaluate_and_audit.py               # Statistical holdout verification & quantitative metric auditor
-├── generate_multiphysics_figures.py    # Master 600 DPI publication figure generator
+├── src/                                # Core Neural Network, PDE & Evaluation Modules
+│   ├── config.py                       # Physical scales, dimensionless constants & hyperparameters
+│   ├── network.py                      # Gaussian Fourier projection, ResNet trunk & decoupled heads
+│   ├── physics_loss.py                 # Navier-Stokes Favre momentum, continuity, swirl & kinetics
+│   ├── relobralo.py                    # Relative Loss Balancing with Random Lookback controller
+│   ├── collocation_sampler.py          # 4D Latin Hypercube Sampling & RAR adaptive allocation
+│   ├── data_loader.py                  # Multi-throttle CFD benchmark data ingestion engine
+│   ├── train.py                        # Two-stage AdamW + Quasi-Newton L-BFGS master training loop
+│   ├── evaluate.py                     # Statistical holdout verification & quantitative metric auditor
+│   └── generate_figures.py             # Master 600 DPI publication figure generator
 │
 ├── checkpoints/                        # Trained Neural Surrogate Weights
 │   └── best_multi_physics_model.pt     # 2.1 MB FP32 parameter checkpoint (526,380 weights)
@@ -281,15 +280,17 @@ The neural model scales across the flight envelope ($\Phi \in [0.55, 1.00]$), tr
 │   ├── figure_3_training_convergence_relobralo.png / .pdf
 │   ├── figure_4_axial_velocity_profiles.png / .pdf
 │   ├── figure_5_tangential_velocity_profiles.png / .pdf
-│   ├── figure_6_crz_and_flashback.png / .pdf
 │   ├── figure_6_static_temperature_profiles.png / .pdf
 │   ├── figure_7_chemical_kinetics_oh.png / .pdf
 │   ├── figure_8_pressure_and_heat_flux.png / .pdf
+│   ├── figure_9_crz_and_flashback.png / .pdf
 │   └── figure_10_scaling_and_computational_speedup.png / .pdf
 │
-└── paper/                              # LaTeX Source & Compilation Workspace
-    ├── main.tex                        # Manuscript source with ASME/AIAA typography
-    └── main.pdf                        # Production PDF
+└── paper/                              # Research Manuscript & LaTeX Source
+    ├── main.tex                        # Production RevTeX 4-2 manuscript source (15 pages)
+    ├── main.pdf                        # Production publication PDF with 10 vector figures
+    ├── references.bib                  # Complete BibTeX bibliography
+    └── figures/                        # Embedded publication vector graphics
 ```
 
 ---
@@ -314,8 +315,8 @@ pip install -r requirements.txt
 Evaluate the trained 6-block surrogate on arbitrary $(x, y, z, \Phi)$ coordinates in milliseconds:
 ```python
 import torch
-from network import MultiPhysicsFourierResPINN
-from config import Scaler
+from src.network import MultiPhysicsFourierResPINN
+from src.config import Scaler
 
 # Load scaler and instantiate model
 scaler = Scaler()
@@ -336,16 +337,16 @@ with torch.no_grad():
 Train the DA-PINN surrogate from scratch using the two-stage phased protocol:
 ```bash
 # Phase 1 (AdamW 2,000 steps) + Phase 2 (L-BFGS 1,000 iterations)
-python train.py
+python src/train.py
 ```
 
 ### 4. Auditing Multi-Physics Metrics & Generating 600 DPI Figures
 ```bash
 # Evaluate statistical holdout metrics across all 7 rakes & liner wall
-python evaluate_and_audit.py
+python src/evaluate.py
 
 # Re-generate all 10 master publication figures in vector PDF and 600 DPI PNG
-python generate_multiphysics_figures.py
+python src/generate_figures.py
 ```
 
 ---
