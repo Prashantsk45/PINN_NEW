@@ -4,6 +4,7 @@
 \usepackage{graphicx}
 \graphicspath{{figures/}{./}}
 \usepackage{booktabs}
+\usepackage{dblfloatfix}
 \usepackage{siunitx}
 \usepackage[colorlinks=true,allcolors=blue]{hyperref}
 \usepackage{orcidlink}
@@ -417,6 +418,7 @@ In addition to latency reductions, the neural surrogate achieves substantial dat
 
 For onboard aerospace propulsion systems, this combination of sub-second inference and high compression removes the primary computational barrier to deploying real-time digital twins. Rather than interpolating across coarse precomputed look-up tables that fail to enforce Navier-Stokes conservation off-design, the network evaluates continuous physical state variables at arbitrary spatial coordinates. Flight management computers can query localized liner wall temperatures, aerodynamic pressure drops, and radical flame brush boundaries in real time during dynamic throttle transients. Differentiating the surrogate with respect to input parameters also provides direct gradient access for model-predictive engine control, enabling active acoustic suppression and rapid thermal boundary monitoring during flight.
 
+\clearpage
 \section{Conclusions}
 \label{sec:conclusions}
 
