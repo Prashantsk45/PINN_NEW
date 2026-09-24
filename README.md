@@ -1,6 +1,6 @@
 # Physics-Informed Neural Networks for 3D Aerodynamic and Reacting Flow Reconstruction in a Hydrogen Swirl Aero-Engine Combustor
 
-[![DOI: 10.6084/m9.figshare.33684790](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.33684790-blue.svg)](https://doi.org/10.6084/m9.figshare.33684790)
+[![DOI: 10.6084/m9.figshare.33986668](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.33986668-blue.svg)](https://doi.org/10.6084/m9.figshare.33986668)
 [![Status: Under Review](https://img.shields.io/badge/Status-Under%20Review-success.svg)]()
 [![Architecture: Fourier--ResNet--PINN](https://img.shields.io/badge/Architecture-Fourier--ResNet--PINN-orange.svg)]()
 [![Physics: 3D%20Favre--RANS%20%2B%20Kinetics](https://img.shields.io/badge/Physics-3D%20Favre--RANS%20%2B%20Kinetics-blueviolet.svg)]()
@@ -11,7 +11,7 @@
 **Author:** [Prashant Suresh Kamble](https://orcid.org/0009-0005-4228-3795)  
 **Email:** [prashantsk.272@gmail.com](mailto:prashantsk.272@gmail.com)  
 **Affiliation:** AeroMyne, Solapur, Maharashtra 413305, India  
-**Figshare Archive:** [doi:10.6084/m9.figshare.33684790](https://doi.org/10.6084/m9.figshare.33684790)  
+**Figshare Archive:** [doi:10.6084/m9.figshare.33986668](https://doi.org/10.6084/m9.figshare.33986668)  
 **Target Publication:** *Physical Review Fluids* / *AIAA Journal* (Under Review)  
 
 ---
@@ -323,7 +323,7 @@ If you use this codebase, neural surrogate weights, or numerical benchmark datas
   journal   = {Physical Review Fluids},
   year      = {2026},
   note      = {Under Review},
-  doi       = {10.6084/m9.figshare.33684790}
+  doi       = {10.6084/m9.figshare.33986668}
 }
 
 @software{kamble2026pinndataset,
@@ -333,8 +333,8 @@ If you use this codebase, neural surrogate weights, or numerical benchmark datas
   year      = {2026},
   publisher = {Figshare},
   version   = {1.0},
-  doi       = {10.6084/m9.figshare.33684790},
-  url       = {https://doi.org/10.6084/m9.figshare.33684790}
+  doi       = {10.6084/m9.figshare.33986668},
+  url       = {https://doi.org/10.6084/m9.figshare.33986668}
 }
 ```
 

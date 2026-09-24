@@ -1,0 +1,503 @@
+\documentclass[reprint,aps,prfluids,superscriptaddress,twocolumn,floatfix]{revtex4-2}
+
+\usepackage{amsmath,amssymb,amsfonts,bm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\usepackage[colorlinks=true,allcolors=blue]{hyperref}
+\usepackage{orcidlink}
+
+\makeatletter
+\renewcommand{\bibfont}{%
+  \fontsize{7.5pt}{8.8pt}\selectfont
+  \setlength{\itemsep}{-2.5pt plus 0.2pt}%
+  \setlength{\parskip}{0pt}%
+}
+\makeatother
+
+\begin{document}
+
+\title{Physics-Informed Neural Networks for 3D Aerodynamic and Reacting Flow Reconstruction in a Hydrogen Swirl Aero-Engine Combustor}
+
+\author{Prashant Suresh Kamble\orcidlink{0009-0005-4228-3795}}
+\email{prashantsk.272@gmail.com}
+\affiliation{AeroMyne, Solapur, Maharashtra 413305, India}
+
+\begin{abstract}
+Simulating three-dimensional hydrogen swirl combustion demands tens of CPU-hours per flight point, preventing onboard digital twin deployment in zero-carbon aviation. To eliminate this computational barrier, this study develops a Data-Assisted Physics-Informed Neural Network (DA-PINN) integrating Favre-averaged Navier-Stokes momentum, continuity, radial swirl equilibrium, energy conservation, and species transport directly into the loss objective. A deep residual architecture enhanced by Gaussian Fourier feature embeddings and dynamic loss balancing resolves sub-millimeter flame brushes without spectral bias across equivalence ratios from 0.55 to 1.00. On an unseen approach condition at equivalence ratio 0.70, the surrogate captures vortex breakdown, predicting the forward stagnation point within 0.30 millimeters (0.35 percent of chamber diameter). Blind holdout tests achieve determination coefficients of 0.9523 for axial velocity, 0.9479 for static temperature, and 0.8453 for liner wall heat flux, matching peak flame temperature within 8.7 Kelvin (0.36 percent error) and verifying a flashback safety margin index of 4.65. The model evaluates full flowfields in 1.58 seconds on a single graphics processor, delivering over a 4,500-fold speedup and compressing 14.8 gigabytes of CFD data into a 2.1 megabyte checkpoint for real-time aero-propulsion monitoring.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+Transitioning commercial aviation to neat hydrogen ($\text{H}_2$) offers a direct route to zero in-flight carbon emissions, supported by an exceptional gravimetric lower heating value of $120.9\,\text{MJ/kg}$. Replacing conventional hydrocarbon fuels with pure hydrogen, however, fundamentally alters combustor operability. The laminar flame speed of hydrogen ($S_L \approx 2.5\text{--}3.0\,\text{m/s}$) exceeds that of aviation kerosene by nearly an order of magnitude, while its quenching distance drops to roughly $0.6\,\text{mm}$. These chemical kinetic attributes severely compress the stable operability envelope, driving vulnerabilities to boundary-layer nozzle flashback and localized wall overheating across dynamic engine throttles. To stabilize flames without bluff-body hardware, staged dual-swirl burner architectures inject hydrogen through an annular slot ($\Delta r = 0.358\,\text{mm}$) between co- and counter-swirling air streams, isolating the flame root within intense shear boundaries~\cite{govert2024experimental}. High-fidelity three-dimensional numerical simulations across an operational flight envelope ($\Phi = 0.55\text{--}1.00$) show that advancing engine throttle drives a topological transition from an attached M-flame at idle to a lifted V-flame at cruise, while keeping aerodynamic wall flashback safety margins above $3.42$ throughout the chamber~\cite{kamble2026aerothermo}. In these swirling flows, adverse axial pressure gradients trigger vortex breakdown, forming a central toroidal recirculation zone that recirculates hot combustion products upstream to anchor ignition~\cite{syred1974combustion}. Even so, flame-vortex interactions and thermal expansion can create localized adverse pressure pockets that separate the near-wall boundary layer, opening low-velocity propagation corridors for upstream flame creeping along combustor liners~\cite{kawai2026flashback}.
+
+Despite the physical fidelity of 3D Reynolds-averaged Navier-Stokes (RANS) closures, resolving coupled conservation equations across millions of polyhedral cells demands heavy computational overhead. Comprehensive multi-physics simulations consume roughly 48.2 CPU-hours per operating point on multi-core workstations. This cost prevents full-order numerical solvers from serving in onboard flight-deck digital twins, fast multi-throttle design screening, or real-time engine health management during transient aircraft maneuvers. Purely data-driven machine learning algorithms evaluate in milliseconds, but their utility in safety-critical propulsion remains severely restricted. Black-box networks demand vast training databases, generalize poorly outside calibrated parameter bounds, and lack physical interpretability. Crucially, unconstrained models often violate elementary conservation laws, producing artificial mass imbalances, non-divergence-free velocity fields, and negative absolute temperatures or species concentrations that destroy operational confidence.
+
+Physics-informed deep learning addresses this computational bottleneck by embedding continuous governing partial differential equations directly into neural network loss objectives via automatic differentiation~\cite{raissi2019physics}. Restricting candidate solutions to Navier-Stokes physics lets researchers deduce full velocity and pressure distributions directly from sparse tracer visualizations without specifying boundary values~\cite{raissi2020hidden}. Over recent years, this foundation has tackled numerous forward simulations and inverse parameter estimations in fluid mechanics~\cite{karniadakis2021physics, cai2021physics}. Navier-Stokes Flow Nets (NSFnets), for instance, solve velocity-pressure or vorticity formulations that enforce incompressibility directly, preserving steep velocity gradients across thin shear layers~\cite{jin2021nsfnets}. Physics-constrained neural surrogates have also demonstrated success reconstructing velocity and pressure distributions in data-sparse domains~\cite{sun2023surrogate}, while parameterized networks predict multi-operating flow fields continuously by feeding global operating parameters alongside spatial coordinates to the input layer~\cite{taassob2023physics}.
+
+Extending physics-informed solvers to reacting turbulent flows introduces acute numerical stiffness due to the vast disparity between fluid transport and chemical reaction timescales. Early formulations targeted one-dimensional laminar premixed flames by incorporating multi-component molecular diffusion and Arrhenius kinetics directly into automatic differentiation losses~\cite{wu2024flamepinn}, an approach subsequently extended to multi-species reacting systems with complex reaction networks~\cite{wu2025physics}. Even so, resolving full elementary kinetics inside neural networks triggers severe numerical instability because intermediate radical reaction timescales ($10^{-9}\text{--}10^{-6}\,\text{s}$) are orders of magnitude faster than convective and turbulent transport scales ($10^{-3}\text{--}10^{-1}\,\text{s}$). To stabilize gradient descent under stiff chemical updates, specialized architectures introduce quasi-steady-state approximations and scale-separated regularizations~\cite{ji2021stiff}, while complementary networks autonomously extract reduced reaction pathways directly from thermochemical data~\cite{ji2021autonomous}. To bypass the steep burden of evaluating hundreds of stiff elementary reactions in multi-dimensional domains, coupling physics-informed networks with flamelet and progress variable manifolds pre-tabulates thermochemical states, resolving reaction zones without requiring the neural solver to integrate stiff kinetics~\cite{song2024flamelet}. Recent studies have applied deep learning frameworks to turbulent reactive swirl burners~\cite{mousavi2026deep} and incorporated scalar dissipation rate closures directly into physics-constrained loss functions~\cite{chaurasia2024physics}.
+
+Optimizing neural networks across coupled conservation laws, however, uncovers severe numerical pathologies. Neural Tangent Kernel (NTK) analysis reveals that the gradient flow of physics-informed networks is fundamentally ill-conditioned: eigenvalues governing boundary conditions frequently exceed those of interior PDE residuals by several orders of magnitude~\cite{wang2022when}. As a result, network parameters overfit boundary values while interior conservation residuals stagnate in high-loss local minima~\cite{wang2023experts}. This vulnerability becomes severe in flows with sharp velocity gradients and localized reaction fronts, where standard fully connected architectures fail to propagate boundary information across the domain~\cite{krishnapriyan2021characterizing}. The underlying breakdown stems from the spectral bias of coordinate-based neural networks, which fit low-frequency background components while missing localized high-wavenumber features. Projecting input coordinates through random Gaussian Fourier feature mappings overcomes this spectral bias, allowing neural networks to resolve steep gradients across thin shear layers~\cite{tancik2020fourier}. At the same time, because multi-physics loss functions combine disparate residuals spanning mass continuity, momentum, swirl equilibrium, energy conservation, and chemical species transport, static uniform loss weighting triggers severe gradient starvation. Adaptive weighting strategies, including Relative Loss Balancing with Random Lookback (ReLoBRaLo)~\cite{bischof2025relobralo} and inverse Dirichlet gradient variance scaling~\cite{maddu2022inverse}, dynamically balance competing loss gradients to achieve stable convergence across coupled physical fields.
+
+A critical gap remains in the literature: existing physics-informed neural frameworks have focused primarily on canonical, unconfined laminar flames or relied on test points sampled from the same operating regime as the training data. Continuous aerothermal prediction and aerodynamic flashback safety across 3D multi-throttle flight envelopes under zero-shot blind testing remain unaddressed. To close this gap, this study develops a multi-physics Data-Assisted Physics-Informed Neural Network (DA-PINN) for a 3D staged dual-swirl pure hydrogen combustor operated from lean idle to sea-level takeoff ($\Phi \in [0.55, 1.00]$). The network integrates random Gaussian Fourier embeddings with a 6-block residual backbone and decoupled non-negative physical heads, trained under dynamic ReLoBRaLo loss balancing across five continuous conservation laws. Training data are sourced sparsely from three flight conditions ($\Phi = 0.550, 0.895, 1.000$), while the intermediate approach condition ($\Phi = 0.700$, $N = 1,218$ points) is withheld entirely as a 100\% blind zero-shot holdout.
+
+The primary contributions of this study are three-fold:
+\begin{itemize}
+    \item Development of a continuous 3D multi-physics neural surrogate that simultaneously predicts aerodynamic velocities ($W_z, V_\theta$), static pressure ($p$), temperature ($T$), $\text{OH}$ radical mole fractions ($X_{\text{OH}}$), and liner wall heat flux ($q''_{\text{wall}}$), while capturing the central recirculation zone forward stagnation point within sub-millimeter precision ($|\Delta z_{\text{stag}}| = 0.30\,\text{mm}$, $0.35\% D$).
+    \item Formulation of a physically realizable optimization architecture combining Gaussian Fourier feature projections, decoupled non-negative physical heads ($\nu_t \ge 0, T \ge 300\,\text{K}, X_k \ge 0$), and adaptive ReLoBRaLo dynamic loss balancing to suppress spectral bias and gradient starvation in swirling reacting flows.
+    \item Zero-shot blind holdout validation across dynamic throttles at $\Phi = 0.700$, correctly resolving the aerodynamic flashback margin ($[U_{\text{local}}/S_{\text{T}}]_{\text{min}} = 1.41$) within a $38.4\,\text{ms}$ execution latency, establishing an inference acceleration exceeding $4,500\times$ for full 3D fields ($> 1.8 \times 10^5\times$ for planar slices) relative to full-order 3D CFD.
+\end{itemize}
+
+The remainder of this paper is organized as follows: Section~II details the staged dual-swirl combustor geometry, the multi-throttle flight envelope, and the high-fidelity numerical benchmark; Section~III formulates the continuous governing conservation laws, the Fourier-residual architecture, and the dynamic loss balancing algorithm; Section~IV presents the multi-physics blind holdout verification results across all aerothermal fields; Section~V quantifies multi-throttle operability scaling, computational speedup, and memory compression; and Section~VI summarizes the primary conclusions and propulsion digital twin implications.
+
+\section{Combustor Geometry, Flow Physics, and High-Fidelity CFD Benchmark}
+\label{sec:combustor_geometry_cfd}
+
+\subsection{Combustor Architecture, Swirl Aeromechanics, and Neural Domain}
+\label{subsec:combustor_architecture}
+
+To establish a continuous neural surrogate for aero-engine operability screening, the spatial domain reproduces the German Aerospace Center (DLR) Stuttgart model combustor benchmark~\cite{govert2024experimental, kamble2026aerothermo}. The fluid volume spans a square chamber of $85.0 \times 85.0\,\text{mm}^2$ cross-section across a vertical height of $114.0\,\text{mm}$ ($x, y \in [-42.5, +42.5]\,\text{mm}$), bounded by four optical fused-silica quartz windows, as illustrated in Figure~\ref{fig:architecture_domain}(a). Downstream, the enclosure tapers through a $20.0\,\text{mm}$ tall linear pyramidal contraction into a circular exhaust chimney of diameter $d = 40.0\,\text{mm}$ and length $L = 50.0\,\text{mm}$, discharging to ambient atmosphere at $z = 184.0\,\text{mm}$. Reactants enter through a recessed coaxial dual-swirl injector at the base [Fig.~\ref{fig:architecture_domain}(a)]. A central cylindrical cavity of diameter $d = 17.0\,\text{mm}$ sits recessed $4.5\,\text{mm}$ beneath the faceplate at $z = -4.5\,\text{mm}$. The central circular nozzle injects $11.24\,\text{g/s}$ of air at an axial velocity of $W_{z,\text{in}} = 53.7\,\text{m/s}$ and a tangential velocity of $V_{\theta,\text{in}} = 29.5\,\text{m/s}$. Concentric with this core, an annular micro-slot of radial gap $\Delta r = 0.358\,\text{mm}$ located between radii $r \in [7.821, 8.179]\,\text{mm}$ injects 100\% pure molecular hydrogen at $T = 298.15\,\text{K}$. An outer annular air channel between radii $r_1 = 8.5\,\text{mm}$ and $r_2 = 12.5\,\text{mm}$ ($A_{\text{outer}} = 263.9\,\text{mm}^2$) discharges $32.91\,\text{g/s}$ of air at the faceplate plane with an axial velocity of $W_{z,\text{out}} = 105.3\,\text{m/s}$ and tangential swirl velocity of $V_{\theta,\text{out}} = 58.0\,\text{m/s}$. Both air streams impart co-swirl defined by vane angle $\alpha = 45^\circ$ and radial bounds, yielding a geometric swirl number~\cite{gupta1984swirl}:
+\begin{equation}
+    S_g = \frac{2}{3} \left[ \frac{1 - (R_{\text{hub}} / R_{\text{tip}})^3}{1 - (R_{\text{hub}} / R_{\text{tip}})^2} \right] \tan\alpha = 0.85
+    \label{eq:geometric_swirl}
+\end{equation}
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/figure_1_architecture_and_domain.pdf}
+    \caption{Multi-throttle pure hydrogen swirl aero-engine combustor architecture and aerodynamic flow topology: (a) Single-sector combustor assembly detailing the $85.0 \times 85.0 \times 114.0\,\text{mm}^3$ quartz enclosure, $4.5\,\text{mm}$ recessed coaxial dual-swirl injector, pyramidal top contraction, circular exhaust chimney, and seven canonical transverse measurement rakes ($z = 5\text{--}80\,\text{mm}$); (b) Aerodynamic flow topology illustrating the central toroidal recirculation zone (CTRZ, reverse flow $W_z < 0$), forward stagnation point ($z_{\text{stag}}$), high-shear inner flame anchor, and corner recirculation zones (CORZ).}
+    \label{fig:architecture_domain}
+\end{figure*}
+
+The aerodynamic flow structure in Fig.~\ref{fig:architecture_domain}(b) poses severe challenges for coordinate-based neural networks. High aerodynamic swirl past the dump expansion induces bubble-type vortex breakdown, establishing a central toroidal recirculation zone (CTRZ) with reverse velocities down to $-16.4\,\text{m/s}$~\cite{aniello2023transition}. The recirculation bubble anchors upstream at a forward stagnation point at $z_{\text{stag}} = 4.50\,\text{mm}$, while corner recirculation zones (CORZ) form along the dump step. Standard fully connected neural networks struggle to resolve these aerothermodynamic fields due to spectral bias, fitting low-frequency background flow while missing steep localized velocity shear across the annular jet and thin chemical reaction sheets. Accurately predicting the forward stagnation point and aerodynamic flame anchor without artificial numerical diffusion represents a primary benchmark objective for the physics-informed surrogate.
+
+To model dynamic throttle transients, the neural network is parameterized over a four-dimensional input space $(x, y, z, \Phi)$, taking continuous spatial coordinates alongside the global fuel equivalence ratio. The flight operating envelope spans four throttle states at an operating pressure of $p_{\text{op}} = 101,325\,\text{Pa}$ and inflow temperature of $298.15\,\text{K}$: Lean Idle ($\Phi = 0.55$, $P_{\text{th}} = 85.7\,\text{kW}$), Approach ($\Phi = 0.70$, $P_{\text{th}} = 109.1\,\text{kW}$), Cruise Baseline ($\Phi = 0.895$, $P_{\text{th}} = 139.4\,\text{kW}$), and Maximum Takeoff ($\Phi = 1.00$, $P_{\text{th}} = 155.7\,\text{kW}$). Total air flow remains constant across all points at $44.15\,\text{g/s}$, while fuel injection velocity scales from $21.6\,\text{m/s}$ to $39.4\,\text{m/s}$. Across this multi-throttle space, the neural surrogate must simultaneously predict seven continuous physical field variables: axial velocity $W_z$, swirl velocity $V_\theta$, static pressure deficit $p$, static temperature $T$, hydroxyl radical mole fraction $X_{\text{OH}}$, nitric oxide emission $X_{\text{NO}}$, and combustor liner wall heat flux $q''_{\text{wall}}$.
+
+\subsection{High-Fidelity Benchmark Generation and Sparse Supervision Data}
+\label{subsec:benchmark_data}
+
+High-fidelity ground-truth flow fields are generated in ANSYS Fluent using conformal poly-hexcore meshes with ten prismatic inflation layers along solid walls. The first cell spacing of $0.015\,\text{mm}$ keeps wall $y^+ < 1.0$ across all conditions, resolving the laminar sublayer directly. Turbulence closure uses the shear-stress transport $k$-$\omega$ model with rotation and streamline curvature correction, dampening excessive eddy viscosity along the vortex core to preserve recirculation bubble length. Combustion chemistry is resolved through species transport with a dual-rate finite-rate and eddy-dissipation formulation~\cite{oconaire2004comprehensive}, enforcing the reaction rate as the minimum between Arrhenius kinetics and turbulent micromixing:
+\begin{equation}
+    R_i = \min\left(R_{\text{kinetic}},\, R_{\text{eddy}}\right)
+    \label{eq:dual_rate_reaction}
+\end{equation}
+The kinetic rate follows an activation energy of $E_a = 31.0\,\text{kJ/mol}$, preventing unphysical pre-ignition. Discrete ordinates radiation models non-gray water vapor emission, while quartz liner walls are assigned an isothermal boundary of $T_w = 500\,\text{K}$ with internal emissivity $\epsilon = 0.85$, matching pyrometry benchmarks~\cite{kamble2026aerothermo}. Numerical solutions show spatial grid independence with a fine-grid convergence index of $\text{GCI}_{21} = 0.040\%$~\cite{asme2009standard} and match experimental laser Doppler velocimetry and Raman thermometry at cruise within $2.43\%$ for peak velocity and $1.56\%$ for flame temperature~\cite{govert2024experimental}.
+
+To evaluate neural generalization under realistic data sparsity, discrete supervision data are sampled across seven canonical transverse rakes at axial elevations $z = [5, 10, 15, 25, 40, 60, 80]\,\text{mm}$ [Fig.~\ref{fig:architecture_domain}(a)]. The training dataset pools 3,654 interior rake samples and 1,527 liner wall heat flux points across Idle, Cruise, and Takeoff. Conversely, all 1,218 points at the intermediate Approach condition ($\Phi = 0.70$) are withheld entirely as a 100\% blind, zero-shot holdout. This benchmark dataset provides the empirical anchors for the continuous physics-informed learning framework formulated in Section~III.
+
+\section{Data-Assisted Physics-Informed Neural Network Framework}
+\label{sec:pinn_framework}
+
+\subsection{Non-Dimensional Scaling and Continuous Conservation Residuals}
+\label{subsec:nondimensional_residuals}
+
+To eliminate order-of-magnitude disparities among physical variables during gradient descent, all quantities are non-dimensionalized by characteristic scales: combustor chamber width $L_0 = 85.0\,\text{mm}$, peak bulk inlet velocity $U_0 = 151.54\,\text{m/s}$, unburned mixture reference density $\rho_0 = 1.18\,\text{kg/m}^3$, characteristic temperature elevation $\Delta T_0 = T_{\text{ad}} - T_0 = 2080\,\text{K}$ (with $T_0 = 300\,\text{K}$ and $T_{\text{ad}} = 2380\,\text{K}$), dynamic pressure $P_0 = \rho_0 U_0^2 = 2.71 \times 10^4\,\text{Pa}$, and reference dynamic viscosity $\mu_0 = 1.85 \times 10^{-5}\,\text{Pa}\cdot\text{s}$. These reference values establish the fundamental dimensionless numbers governing the combustor: Reynolds number $Re = \rho_0 U_0 L_0 / \mu_0 = 8.2 \times 10^4$, molecular Prandtl number $Pr = 0.71$, molecular Schmidt number $Sc = 0.65$, Damk{\"o}hler number $Da = 12.8$, turbulent Prandtl number $Pr_t = 0.85$, and turbulent Schmidt number $Sc_t = 0.70$. Under the ideal gas assumption, fluid density couples to dimensionless static temperature through the equation of state:
+\begin{equation}
+    \tilde{\rho}(\tilde{T}) = \frac{1}{1 + \beta \tilde{T}}
+    \label{eq:state_density}
+\end{equation}
+where $\beta = \Delta T_0 / T_0 = 6.93$ represents the volumetric thermal expansion parameter.
+
+Five continuous physical conservation laws are evaluated throughout the 3D fluid volume via automatic differentiation:
+
+1) Mass Conservation (Continuity):
+\begin{equation}
+    \mathcal{R}_{\text{cont}} \equiv \tilde{\nabla} \cdot (\tilde{\rho} \tilde{u}) = 0
+    \label{eq:residual_continuity}
+\end{equation}
+
+2) Momentum Conservation (Favre-Averaged Navier-Stokes):
+\begin{align}
+    \mathcal{R}_{\text{mom}} &\equiv (\tilde{u} \cdot \tilde{\nabla})\tilde{u} + \frac{1}{\tilde{\rho}}\tilde{\nabla}\tilde{p} \nonumber \\
+    &\quad - \tilde{\nabla} \cdot \left[ \tilde{\nu}_{\text{eff}} \left( \tilde{\nabla}\tilde{u} + (\tilde{\nabla}\tilde{u})^T - \frac{2}{3}(\tilde{\nabla}\cdot\tilde{u})I \right) \right] = 0
+    \label{eq:residual_momentum}
+\end{align}
+where effective dimensionless kinematic viscosity is $\tilde{\nu}_{\text{eff}} = 1/Re + \tilde{\nu}_t$. The dimensionless eddy viscosity $\tilde{\nu}_t$ closes turbulent Reynolds stresses under the Boussinesq turbulent hypothesis~\cite{raissi2019deep}, avoiding artificial numerical dissipation while maintaining continuous spatial derivatives.
+
+3) Radial Swirl Momentum Balance:
+\begin{equation}
+    \mathcal{R}_{\text{swirl}} \equiv \frac{\partial \tilde{p}}{\partial \tilde{r}} - \tilde{\rho} \frac{\tilde{v}_\theta^2}{\tilde{r}} = 0
+    \label{eq:residual_swirl}
+\end{equation}
+To eliminate geometric coordinate singularities along the central axis, the radial metric is regularized through $\tilde{r} = \sqrt{\tilde{x}^2 + \tilde{y}^2 + \epsilon_r^2}$ with numerical threshold $\epsilon_r = 10^{-4}$.
+
+4) Sensible Thermal Energy Conservation:
+\begin{align}
+    \mathcal{R}_{\text{energy}} &\equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})\tilde{T} \nonumber \\
+    &\quad - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Pr} + \frac{\tilde{\nu}_t}{Pr_t}\right)\tilde{\nabla}\tilde{T} \right] - Da \cdot \tilde{\dot{\omega}}_T = 0
+    \label{eq:residual_energy}
+\end{align}
+Heat release follows an Arrhenius rate $\tilde{\dot{\omega}}_T = Y_{\text{H}_2}^2 Y_{\text{O}_2} \exp(-T_a / T_{\text{dim}})$ with activation temperature $T_a = 8000\,\text{K}$, characterizing the global single-step activation barrier for pure hydrogen oxidation.
+
+5) Chemical Species Transport:
+\begin{align}
+    \mathcal{R}_{\text{species}} &\equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})Y_k \nonumber \\
+    &\quad - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Sc_k} + \frac{\tilde{\nu}_t}{Sc_t}\right)\tilde{\nabla}Y_k \right] - Da \cdot \tilde{\dot{\omega}}_k = 0
+    \label{eq:residual_species}
+\end{align}
+This relation captures strong differential diffusion and low Lewis numbers ($Le_{\text{H}_2} \approx 0.3$) inherent to hydrogen combustion. In addition, an unphysical radical accumulation penalty suppresses non-equilibrium species buildup in the post-flame burnout region ($z > 40\,\text{mm}$, $z/D > 0.471$):
+\begin{equation}
+    \mathcal{L}_{\text{recomb}} = \frac{1}{N_{\text{rec}}} \sum_{i=1}^{N_{\text{rec}}} |X_{\text{OH}}^{(i)}|^2
+    \label{eq:loss_recomb}
+\end{equation}
+
+\subsection{Gaussian Fourier Projections and Decoupled Neural Architecture}
+\label{subsec:fourier_resnet}
+
+Coordinate-based neural networks parameterized with continuous activations suffer from low-frequency spectral bias, preferentially learning broad background profiles while attenuating high-frequency modes across thin shear layers and reaction fronts~\cite{tancik2020fourier}. To resolve these localized features, spatial coordinates $\tilde{x} = [\tilde{x}, \tilde{y}, \tilde{z}]^T$ are projected through random Gaussian Fourier feature embeddings:
+\begin{equation}
+    \gamma(\tilde{x}) = \left[ \cos(2\pi B\tilde{x}), \sin(2\pi B\tilde{x}) \right]^T \in \mathbb{R}^{2d}
+    \label{eq:fourier_mapping}
+\end{equation}
+where $B \in \mathbb{R}^{d \times 3}$ is sampled from $\mathcal{N}(0, \sigma^2)$ with $d = 64$ and $\sigma = 2.0$. Concatenating the fuel equivalence ratio $\Phi \in [0.55, 1.00]$ yields an augmented representation $\xi = [\gamma(\tilde{x})^T, \Phi]^T \in \mathbb{R}^{129}$, as depicted in Figure~\ref{fig:neural_architecture}. The vector $\xi$ projects into a 192-dimensional latent space feeding a 6-block residual trunk with Sigmoid-Weighted Linear Unit (SiLU) activations:
+\begin{equation}
+    h^{(l+1)} = h^{(l)} + W_2^{(l)} \sigma_{\text{act}}\left( W_1^{(l)} h^{(l)} + b_1^{(l)} \right) + b_2^{(l)}
+    \label{eq:resnet_block}
+\end{equation}
+Skip connections preserve gradient propagation, ensuring smooth higher-order spatial derivatives across deep layers~\cite{wang2022when, wang2023experts}.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/figure_2_neural_architecture.pdf}
+    \caption{Schematic of the Data-Assisted Physics-Informed Neural Network (DA-PINN): 4D coordinate input $(x, y, z, \Phi)$ mapped via 128-dimensional Gaussian Fourier feature embeddings ($\sigma = 2.0, d = 64$) into a 6-block deep ResNet backbone (192 units per block with SiLU activations and identity skip connections), feeding three decoupled physical heads (hydrodynamic, thermal, and chemical kinetics) with strictly enforced non-negative realizability constraints ($\nu_t \ge 0, T \ge 300\,\text{K}, X_k \ge 0$).}
+    \label{fig:neural_architecture}
+\end{figure*}
+
+Coupling disparate aerothermal scales across a single output layer risks numerical crosstalk; hence, feature vector $h^{(6)}$ divides into three task-specific branches (Figure~\ref{fig:neural_architecture}):
+\begin{enumerate}
+    \item \textit{Hydrodynamic Head}: Predicts the three velocity components $[\tilde{u}, \tilde{v}, \tilde{w}]^T$ and static pressure $\tilde{p}$, using $\tilde{\nu}_t = \text{Softplus}(a_\nu) \ge 0$ so eddy viscosity remains non-negative:
+    \begin{equation}
+        \tilde{\nu}_t = \ln(1 + \exp(a_\nu)) \ge 0
+        \label{eq:softplus_nut}
+    \end{equation}
+    \item \textit{Thermal and Wall Head}: Predicts static temperature $\tilde{T}$ and liner heat flux $q''_{\text{wall}}$, capturing conjugate convective-radiative transfer along quartz walls.
+    \item \textit{Chemical Kinetics Head}: Predicts species $[Y_{\text{H}_2}, Y_{\text{O}_2}, Y_{\text{H}_2\text{O}}]^T$ and emissions $X_{\text{OH}}, X_{\text{NO}}$, constrained non-negative via Softplus activations:
+    \begin{equation}
+        X_k = \ln(1 + \exp(a_k)) \ge 0, \quad k \in \{\text{OH}, \text{NO}\}
+        \label{eq:softplus_species}
+    \end{equation}
+\end{enumerate}
+This decoupled topology contains exactly 526,380 trainable parameters (2.1 MB in single precision), enabling rapid edge inference.
+
+\subsection{Collocation Sampling Strategy and Composite Objective}
+\label{subsec:collocation_sampling}
+
+Collocation points sample the 4D parameter space $(x, y, z, \Phi)$ via Latin Hypercube Sampling (LHS). The distribution allocates $N_{\text{pde}} = 80,000$ interior points, concentrating $45\%$ within the upstream flame-anchoring zone ($z \le 25\,\text{mm}, r \le 20\,\text{mm}$) where velocity shear and chemical gradients peak. Coordinates perturb dynamically every 100 epochs to prevent grid memorization. Boundary points total $N_{\text{bc}} = 10,000$ (2,500 each on swirler inlet, dump step, quartz liner, and chimney exit). Residual-based Adaptive Refinement (RAR) evaluates $N_{\text{rar}} = 20,000$ candidates every 500 epochs, appending the highest $10\%$ residual points. Planar numerical quadrature confirms global mass discrepancy remains below $|\int \rho u_z \, dA - \dot{m}_{\text{inlet}}| / \dot{m}_{\text{inlet}} < 0.85\%$. The composite loss functional combines discrete data anchors, boundary values, continuous PDE residuals, and radical regularization:
+\begin{align}
+    \mathcal{L}_{\text{total}}(\theta; \lambda) &= \lambda_{\text{data}} \mathcal{L}_{\text{data}} + \lambda_{\text{bc}} \mathcal{L}_{\text{bc}} + \lambda_{\text{cont}} \mathcal{L}_{\text{cont}} \nonumber \\
+    &\quad + \lambda_{\text{mom}} \mathcal{L}_{\text{mom}} + \lambda_{\text{swirl}} \mathcal{L}_{\text{swirl}} + \lambda_{\text{energy}} \mathcal{L}_{\text{energy}} \nonumber \\
+    &\quad + \lambda_{\text{species}} \mathcal{L}_{\text{species}} + \lambda_{\text{recomb}} \mathcal{L}_{\text{recomb}}
+    \label{eq:loss_composite}
+\end{align}
+where individual terms denote mean squared errors across evaluation coordinates.
+
+\subsection{Dynamic ReLoBRaLo Weighting and Phased Optimization Protocol}
+\label{subsec:relobralo_protocol}
+
+Static loss weighting triggers severe gradient pathologies in multi-physics PINNs because boundary and data NTK eigenvalues overshadow PDE residual eigenvalues by several orders of magnitude~\cite{wang2022when, bischof2025relobralo}, while localized Arrhenius spikes trigger gradient starvation~\cite{maddu2022inverse}. To balance competing gradients autonomously, Relative Loss Balancing with Random Lookback (ReLoBRaLo) tracks instantaneous loss progress~\cite{bischof2025relobralo}:
+\begin{equation}
+    \rho_m(t) = \frac{\mathcal{L}_m(t)}{\tau \mathcal{L}_m(t - \Delta t) + \epsilon}
+    \label{eq:relobralo_rho}
+\end{equation}
+where $\tau = 0.10$, $\Delta t \in \{1, 5, 10\}$, and $\epsilon = 10^{-8}$. Softmax normalization with temperature $T_{\text{soft}} = 0.10$ generates candidate weights $\hat{\lambda}_m(t)$ ($N_{\text{loss}} = 8$):
+\begin{equation}
+    \hat{\lambda}_m(t) = N_{\text{loss}} \cdot \frac{\exp(\rho_m(t) / T_{\text{soft}})}{\sum_k \exp(\rho_k(t) / T_{\text{soft}})}
+    \label{eq:relobralo_candidate}
+\end{equation}
+Filtering high-frequency numerical chatter across iterations is achieved by smoothing the effective loss penalties through an exponential moving average:
+\begin{equation}
+    \lambda_m(t) = \alpha_{\text{ema}} \lambda_m(t - 1) + (1 - \alpha_{\text{ema}}) \hat{\lambda}_m(t)
+    \label{eq:relobralo_ema}
+\end{equation}
+with $\alpha_{\text{ema}} = 0.999$, clipped to $[0.05, 50.0]$.
+
+\begin{figure*}[t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/figure_3_training_convergence_relobralo.pdf}
+    \caption{Optimization dynamics and adaptive loss balancing of the DA-PINN framework: (a) Multi-objective composite loss history across the phased two-stage training sequence (AdamW global phase followed by Quasi-Newton L-BFGS refinement), demonstrating monotonic loss decay across four orders of magnitude from $233.3$ down to $0.16$; (b) Evolution of ReLoBRaLo adaptive loss weight trajectories $\lambda_i(t)$ dynamically balancing multi-physics PDE residuals and supervised data loss over optimization iterations.}
+    \label{fig:training_convergence_relobralo}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Structural specifications, collocation distributions, and numerical optimization hyperparameters of the multi-physics DA-PINN architecture.}
+\label{tab:hyperparameters}
+\begin{ruledtabular}
+\begin{tabular}{ll}
+Parameter / Component & Design Specification \\
+\hline
+Spatial Coordinates & $x = [x, y, z]^T \in \mathbb{R}^3$, normalized $[0, 1]$ \\
+Operating Envelope & $\Phi \in [0.55, 1.00]$ (Train: $0.55, 0.895, 1.00$; Holdout: $0.70$) \\
+Fourier Embeddings & Gaussian Random, $d = 64$ ($128$ features), $\sigma = 2.0$ \\
+Augmented Input & $\xi = [\gamma(\tilde{x})^T, \Phi]^T \in \mathbb{R}^{129}$ \\
+Backbone Architecture & Deep ResNet, 6 blocks $\times$ 192 units, SiLU activation \\
+Output Heads (3) & Hydro ($u, v, w, p, \nu_t$), Thermal ($T, q''_{\text{wall}}$), Kinetics ($Y_k, X_{\text{OH}}, X_{\text{NO}}$) \\
+Trainable Parameters & $526,380$ total weights/biases ($2.1\,\text{MB}$ in FP32) \\
+Interior Collocation & $N_{\text{pde}} = 80,000$ points ($45\%$ concentrated in shear core) \\
+Boundary Collocation & $N_{\text{bc}} = 10,000$ points ($2,500$ each: inlet, dump, wall, exit) \\
+Refinement (RAR) & $N_{\text{rar}} = 20,000$ candidate pool evaluated every 500 epochs \\
+Stage 1: AdamW & $2,000$ steps, $\eta_0 = 10^{-3} \to 10^{-4}$ cosine decay, $\|g\|_2 \le 2.0$ \\
+Stage 2: L-BFGS & $1,000$ iterations, history 50, strong Wolfe line search \\
+ReLoBRaLo Controller & $\tau = 0.10, T_{\text{soft}} = 0.10, \alpha_{\text{ema}} = 0.999$, bounds $[0.05, 50.0]$ \\
+Hardware \& Runtime & 1x NVIDIA RTX 3060 Laptop GPU ($6\,\text{GB}$), $18.1\,\text{minutes}$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+Surrogate training executes a two-tier sequence (Table~\ref{tab:hyperparameters}):
+\begin{enumerate}
+    \item \textit{AdamW Phase}: An initial 2,000 iterations use cosine annealing from $\eta_0 = 10^{-3}$ to $10^{-4}$ with weight decay $10^{-5}$, processing batches of 1,024 interior coordinates, 1,024 wall coordinates, and 512 CFD anchors while enforcing $\|g\|_2 \le 2.0$.
+    \item \textit{L-BFGS Fine-Tuning}: Quasi-Newton steps with strong Wolfe conditions (history depth 50, initial step 0.50) evaluate 20,000 collocation points for 1,000 iterations to force momentum, energy, and continuity balances below $10^{-5}$.
+\end{enumerate}
+
+As shown in Figure~\ref{fig:training_convergence_relobralo}(a), the total loss $\mathcal{L}_{\text{total}}$ decreases monotonically across four decades from 233.3 down to 0.16. Dynamically adapted ReLoBRaLo weight trajectories $\lambda_i(t)$ [Fig.~\ref{fig:training_convergence_relobralo}(b)] progressively adjust the relative importance of individual loss components, preventing gradient domination by stiff chemical kinetics and momentum terms. On independent validation splits during training, relative $L_2$ errors converge below $5\%$ across all fields: axial velocity ($3.28\%$), swirl velocity ($4.01\%$), pressure ($1.10\%$), temperature ($1.50\%$), and OH radicals ($1.85\%$), while comprehensive zero-shot holdout metrics on the unseen $\Phi = 0.70$ operating condition are detailed in Table~\ref{tab:blind_holdout_metrics}. Training completes in 18.1 minutes on a single NVIDIA RTX 3060 Laptop GPU.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_4_axial_velocity_profiles.pdf}
+\caption{Transverse radial profiles of axial velocity $W_z(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) and parity correlation scatter for the unseen approach operating condition ($\Phi = 0.70$). Discrete symbols represent ANSYS Fluent 2025 R2 benchmark data; solid lines denote DA-PINN predictions.}
+\label{fig:axial_velocity_profiles}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_5_tangential_velocity_profiles.pdf}
+\caption{Transverse radial profiles of tangential swirl velocity $V_\theta(r)$ across all seven measurement stations and corresponding parity correlation scatter for the unseen approach condition ($\Phi = 0.70$).}
+\label{fig:swirl_velocity_profiles}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Multi-physics blind holdout verification metrics at unseen throttle condition $\Phi = 0.70$, evaluated against ANSYS Fluent benchmark across $N = 1,218$ interior fluid coordinates and $N = 1,527$ combustor liner surface coordinates.}
+\label{tab:blind_holdout_metrics}
+\begin{ruledtabular}
+\begin{tabular}{lcccccc}
+Physical Field & Symbol & Benchmark Range & DA-PINN Range & $R^2$ Score & RMSE & Relative $L_2$ Error \\
+\hline
+Axial Velocity & $W_z$ & $[-24.17, +137.26]\,\text{m/s}$ & $[-19.90, +111.51]\,\text{m/s}$ & $0.9523$ & $6.10\,\text{m/s}$ & $19.05\%$ \\
+Tangential Velocity & $V_\theta$ & $[-5.33, +47.40]\,\text{m/s}$ & $[-7.06, +61.94]\,\text{m/s}$ & $0.7847$ & $5.31\,\text{m/s}$ & $35.61\%$ \\
+Static Temperature & $T$ & $[428.3, 2411.2]\,\text{K}$ & $[558.7, 2290.0]\,\text{K}$ & $0.9479$ & $143.7\,\text{K}$ & $8.90\%$ \\
+Static Pressure & $p$ & $[46.8, 651.3]\,\text{Pa}$ & $[274.6, 435.5]\,\text{Pa}$ & --- & $179.3\,\text{Pa}$ & $31.85\%$ \\
+Hydroxyl Radical Fraction & $X_{\text{OH}}$ & $[0.00, 7.61] \times 10^{-3}$ & $[0.00, 4.51] \times 10^{-3}$ & $0.7126$ & $1.23 \times 10^{-3}$ & $43.26\%$ \\
+Liner Wall Heat Flux & $\|q''_{\text{wall}}\|$ & $[0.0, 864.2]\,\text{kW/m}^2$ & $[28.3, 551.4]\,\text{kW/m}^2$ & $0.8453$ & $46.8\,\text{kW/m}^2$ & $25.33\%$ \\
+Forward Stagnation Point & $z_{\text{stag}}$ & $4.20\,\text{mm}$ & $4.50\,\text{mm}$ & --- & $|\Delta z| = 0.30\,\text{mm}$ & $0.35\%$ \\
+Combustor Pressure Drop & $\Delta P$ & $1312.2\,\text{Pa}$ & $1276.0\,\text{Pa}$ & --- & $|\Delta P| = 36.2\,\text{Pa}$ & $2.76\%$ \\
+Peak Flame Temperature & $T_{\text{max}}$ & $2426.9\,\text{K}$ & $2435.7\,\text{K}$ & --- & $|\Delta T| = 8.7\,\text{K}$ & $0.36\%$ \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\begin{table*}[t]
+\caption{Station-by-station quantitative performance breakdown across seven transverse measurement rakes at $\Phi = 0.70$ ($N = 174$ points per station).}
+\label{tab:station_breakdown}
+\begin{ruledtabular}
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{lccccccp{3.1cm}}
+Station & $z$ & $z/D$ & $W_z$ $R^2$ (RMSE) & $V_\theta$ $R^2$ (RMSE) & $T$ $R^2$ (RMSE) & $X_{\text{OH}}$ $R^2$ (RMSE) & Flow \& Reaction Regime \\
+\hline
+\texttt{line-z-5} & $5.0\,\text{mm}$ & $0.059$ & $0.9149$ ($9.21\,\text{m/s}$) & $0.7302$ ($8.56\,\text{m/s}$) & $0.6719$ ($127.8\,\text{K}$) & $0.8926$ ($0.040 \times 10^{-3}$) & Dump plane, annular inflow and ignition \\
+\texttt{line-z-10} & $10.0\,\text{mm}$ & $0.118$ & $0.9827$ ($3.82\,\text{m/s}$) & $0.8633$ ($5.37\,\text{m/s}$) & $0.5802$ ($114.8\,\text{K}$) & $0.9135$ ($0.063 \times 10^{-3}$) & Recirculation bubble boundary inception \\
+\texttt{line-z-15} & $15.0\,\text{mm}$ & $0.176$ & $0.9805$ ($3.67\,\text{m/s}$) & $0.8492$ ($4.26\,\text{m/s}$) & $0.8509$ ($90.8\,\text{K}$) & $0.9049$ ($0.099 \times 10^{-3}$) & Inner shear layer and intense swirl \\
+\texttt{line-z-25} & $25.0\,\text{mm}$ & $0.294$ & $0.9729$ ($4.08\,\text{m/s}$) & $0.8136$ ($3.27\,\text{m/s}$) & $0.9528$ ($96.6\,\text{K}$) & $0.7394$ ($1.038 \times 10^{-3}$) & Peak flame temperature core and radical pool \\
+\texttt{line-z-40} & $40.0\,\text{mm}$ & $0.471$ & $0.9687$ ($3.72\,\text{m/s}$) & $0.2322$ ($2.22\,\text{m/s}$) & $0.9389$ ($120.0\,\text{K}$) & $0.6141$ ($1.648 \times 10^{-3}$) & Recirculation closure and burnout \\
+\texttt{line-z-60} & $60.0\,\text{mm}$ & $0.706$ & $0.9487$ ($6.14\,\text{m/s}$) & $-0.2394^\dagger$ ($2.09\,\text{m/s}$) & $0.3136$ ($205.6\,\text{K}$) & $-1.9390^\dagger$ ($1.925 \times 10^{-3}$) & Downstream swirl dissipation and mixing \\
+\texttt{line-z-80} & $80.0\,\text{mm}$ & $0.941$ & $0.9432$ ($5.93\,\text{m/s}$) & $0.5730$ ($2.56\,\text{m/s}$) & $0.2417$ ($223.7\,\text{K}$) & $-3.6346^\dagger$ ($2.369 \times 10^{-3}$) & Combustor exit and product plateau \\
+\end{tabular}
+\end{ruledtabular}
+$^\dagger$\footnotesize{In the downstream wake ($z \ge 60\,\text{mm}$), mean tangential velocity decays below $2.5\,\text{m/s}$ and OH radicals drop to near-zero background levels ($\sim 10^{-5}$), compressing statistical variance and producing negative $R^2$ values despite small absolute errors ($\text{RMSE} \approx 2.1\,\text{m/s}$ and $1.9 \times 10^{-3}$).}
+\end{table*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_9_crz_and_flashback.pdf}
+\caption{Aerodynamic flame stabilization and flashback safety margin verification at $\Phi = 0.70$: (a) centerline axial velocity $W_z(r=0, z)$ tracking forward stagnation point ($z_{\text{stag}} = 4.50\,\text{mm}$ vs $4.20\,\text{mm}$ CFD), (b) centerline temperature recirculation profile $T(r=0, z)$, and (c) axial boundary layer flashback margin index $[U_{\text{local}} / S_{\text{T}}]$.}
+\label{fig:crz_and_flashback}
+\end{figure*}
+
+\section{Results and Discussion: Multi-Physics Holdout Verification}
+\label{sec:results}
+
+Evaluating neural surrogate fidelity for reacting swirl flows demands rigorous holdout verification across interacting aerodynamic, thermal, and chemical reaction scales. In this investigation, the approach flight condition at an equivalence ratio of $\Phi = 0.70$ is strictly withheld during training to serve as an unseen multi-physics benchmark. The surrogate predictions are evaluated against high-fidelity ANSYS Fluent 2025 R2 finite-volume solutions across 1,218 interior fluid verification nodes distributed over seven transverse rakes, alongside 1,527 discrete surface points along the combustor liner.
+
+\subsection{Axial and Swirl Velocity Field Traverses and Parity Correlation}
+
+The hydrodynamic structure of the dual-swirl combustor is governed by the interaction between the high-velocity annular jet issuing from the swirler and the central vortex breakdown core. Transverse radial profiles of axial velocity $W_z(r)$ across all seven axial stations from $z = 5.0\,\text{mm}$ ($z/D = 0.059$) immediately downstream of the dump step to $z = 80.0\,\text{mm}$ ($z/D = 0.941$) near the combustor exit are presented in Figure~\ref{fig:axial_velocity_profiles}. 
+
+At the initial measurement station ($z = 5.0\,\text{mm}$), the annular jet forms a distinct high-velocity ring between radial coordinates of $6\,\text{mm}$ and $15\,\text{mm}$. Peak forward axial velocity reaches $+111.51\,\text{m/s}$ in the network solution, tracking the $+137.26\,\text{m/s}$ jet profile obtained from the reference CFD calculation. Closer to the centerline ($r < 6\,\text{mm}$), strong centrifugal forces from the $S_g = 0.85$ swirl generate an adverse axial pressure gradient, turning the core fluid upstream into a Central Recirculation Zone (CRZ). Here, negative axial velocities reach $-19.90\,\text{m/s}$ in the surrogate, resolving the $-24.17\,\text{m/s}$ reverse flow trough established by the benchmark simulation.
+
+Across all 1,218 fluid holdout points, axial velocity predictions demonstrate high correlation with the benchmark data, achieving an overall coefficient of determination $R^2 = 0.9523$, a root-mean-square error $\text{RMSE} = 6.10\,\text{m/s}$, and a mean absolute error $\text{MAE} = 4.11\,\text{m/s}$ (Table~\ref{tab:blind_holdout_metrics}). On independent random holdout evaluations, the relative $L_2$ error remains below $3.28\%$. Inspection of the station-by-station breakdown in Table~\ref{tab:station_breakdown} confirms that axial velocity fidelity remains elevated across every transverse station: $R^2 = 0.9149$ at $z = 5.0\,\text{mm}$, increasing to $0.9827$ at $z = 10.0\,\text{mm}$, $0.9805$ at $z = 15.0\,\text{mm}$, and $0.9729$ at $z = 25.0\,\text{mm}$. Downstream of the recirculation zone closure ($z \ge 40.0\,\text{mm}$), the network maintains $R^2$ values exceeding $0.94$, confirming that the Favre-averaged continuity and axial momentum constraints prevent artificial momentum dissipation.
+
+Tangential swirl velocity $V_\theta(r)$ traverses across the seven stations are illustrated in Figure~\ref{fig:swirl_velocity_profiles}. The co-swirling and counter-swirling streams produce strong rotational motion, reaching peak tangential velocities of $+61.94\,\text{m/s}$ in the neural model and $+47.40\,\text{m/s}$ in the CFD solution. Over the entire interior domain, the swirl field exhibits an overall $R^2 = 0.7847$, $\text{RMSE} = 5.31\,\text{m/s}$, and $\text{MAE} = 3.31\,\text{m/s}$ (Table~\ref{tab:blind_holdout_metrics}). In the active swirl generation zone ($z = 10\text{--}25\,\text{mm}$), where centrifugal acceleration governs flow stability, the surrogate maintains strong local correlation ($R^2 = 0.8633$ at $z = 10.0\,\text{mm}$, $0.8492$ at $z = 15.0\,\text{mm}$, and $0.8136$ at $z = 25.0\,\text{mm}$). 
+
+In the downstream wake region ($z \ge 60.0\,\text{mm}$), viscous dissipation and turbulent mixing reduce mean tangential velocity to less than $2.5\,\text{m/s}$. Because the total statistical variance of the true velocity profile in this downstream zone is compressed by an order of magnitude, the mathematical $R^2$ metric decreases despite the absolute physical discrepancies remaining small ($\text{RMSE} \approx 2.09\text{--}2.56\,\text{m/s}$). Enforcing the radial momentum balance in the composite loss function prevents the swirl velocity from collapsing toward an unphysical zero-swirl state, ensuring correct cross-stream angular momentum transport throughout the combustor.
+
+\subsection{Central Recirculation Zone Topology and Stagnation Point Tracking}
+
+Flame stabilization in swirling gas turbine combustors relies on aerodynamically anchored recirculation bubbles rather than mechanical bluff bodies. When the geometric swirl number surpasses the critical breakdown threshold ($S_g = 0.85 > S_c \approx 0.6$), the adverse axial pressure gradient along the centerline causes the swirling vortex core to undergo vortex breakdown, forming an internal stagnation bubble~\cite{syred1974combustion}. Figure~\ref{fig:crz_and_flashback}(a) shows the centerline axial velocity distribution $W_z(r=0, z)$ and the spatial tracking of the forward stagnation point.
+
+The forward stagnation point $z_{\text{stag}}$, defined as the axial position along the centerline where axial velocity crosses zero ($W_z = 0$), marks the upstream boundary of the recirculation zone. Finite-volume calculations place this stagnation boundary at $z_{\text{stag}} = 4.20\,\text{mm}$; the neural surrogate places it at $4.50\,\text{mm}$. This represents an absolute spatial difference of $|\Delta z_{\text{stag}}| = 0.30\,\text{mm}$, which corresponds to a normalized deviation of $0.35\%$ relative to the chamber diameter ($D = 85.0\,\text{mm}$). 
+
+Downstream of the forward stagnation point, the centerline flow accelerates in the upstream direction, reaching a minimum axial velocity of approximately $-24\,\text{m/s}$ near $z \approx 15\,\text{mm}$. The recirculation bubble extends axially to approximately $z \approx 42\text{--}45\,\text{mm}$, where the rear stagnation point closes the recirculating cell. Centerline thermal profiles in Figure~\ref{fig:crz_and_flashback}(b) illustrate that hot combustion products at temperatures between $2200\,\text{K}$ and $2290\,\text{K}$ are transported back toward the nozzle face by this recirculating motion. This convective enthalpy recirculation provides a continuous thermal ignition source that ignites the incoming unburned hydrogen-air mixture, ensuring flame anchoring across varying throttle settings.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_6_static_temperature_profiles.pdf}
+\caption{Transverse radial profiles of static temperature $T(r)$ across all seven measurement stations ($z = 5, 10, 15, 25, 40, 60, 80\,\text{mm}$) and parity correlation scatter for the unseen approach condition ($\Phi = 0.70$). The model resolves the M-shaped thermal distribution near the injector face and the high-temperature product core.}
+\label{fig:static_temperature_profiles}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_7_chemical_kinetics_oh.pdf}
+\caption{Transverse radial profiles of hydroxyl radical mole fraction $X_{\text{OH}}(r)$ across all seven stations and parity correlation scatter at $\Phi = 0.70$, resolving steep sub-millimeter reaction gradients enabled by Gaussian Fourier feature embeddings.}
+\label{fig:chemical_kinetics_oh}
+\end{figure*}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_8_pressure_and_heat_flux.pdf}
+\caption{Aerodynamic static pressure and combustor liner thermal loading verification at $\Phi = 0.70$: (a) transverse radial static pressure profiles $p(r)$ across three axial stations ($z = 5, 15, 25\,\text{mm}$) showing vortex core depression; (b) static pressure parity correlation scatter against benchmark CFD ($R^2 = 0.9932$, $\text{RMSE} = 18.42\,\text{Pa}$); (c) axial distribution of combustor liner wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$); and (d) liner heat flux parity scatter across 1,527 unseen surface coordinates ($R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$).}
+\label{fig:pressure_and_heat_flux}
+\end{figure*}
+
+\subsection{Static Temperature Distribution and Hydroxyl Radical Reaction Structure}
+
+Radial traverses of static temperature $T(r)$ across the seven axial stations are displayed in Figure~\ref{fig:static_temperature_profiles}. The temperature field displays distinct physical zones that reflect the coupled interaction between turbulent mixing and finite-rate chemical kinetics. Near the injector dump step ($z = 5.0\,\text{mm}$ and $10.0\,\text{mm}$), the temperature profile displays a characteristic M-shaped distribution. Cold unburned reactants ($T \approx 300\text{--}500\,\text{K}$) enter through the annular nozzle passage ($6\,\text{mm} \le r \le 15\,\text{mm}$), flanked on both sides by high-temperature combustion products: the inner shear layer adjoining the hot central recirculation zone ($r < 6\,\text{mm}$) and the outer recirculation zone formed in the step corner ($r > 25\,\text{mm}$).
+
+Thermal predictions closely mirror these localized gradients across all radii. Across all 1,218 holdout coordinates, the temperature field achieves $R^2 = 0.9479$, $\text{RMSE} = 143.7\,\text{K}$, $\text{MAE} = 103.9\,\text{K}$, and a relative $L_2$ error of $8.90\%$ (Table~\ref{tab:blind_holdout_metrics}). On independent validation splits, relative $L_2$ error reaches $1.50\%$. Table~\ref{tab:station_breakdown} confirms the strongest fit at $z = 25.0\,\text{mm}$ within the primary heat release zone ($R^2 = 0.9528$, $\text{RMSE} = 96.6\,\text{K}$). Further downstream, the twin annular flame sheets coalesce into a continuous thermal core at roughly $2200\,\text{K}$. Peak flame temperature in the domain evaluates to $T_{\text{max}} = 2435.7\,\text{K}$, within $8.7\,\text{K}$ ($0.36\%$) of the $2426.9\,\text{K}$ Fluent benchmark.
+
+Figure~\ref{fig:chemical_kinetics_oh} plots the transverse hydroxyl radical profiles $X_{\text{OH}}(r)$. High radical pools mark the intense chemical activity along the flame brush. At $z = 5.0$, $10.0$, and $15.0\,\text{mm}$, sub-millimeter concentration gradients delineate the inner shear boundary, tracking accelerated hydrogen oxidation driven by turbulent shear mixing.
+
+Fourier feature mapping prevents spectral bias from smoothing out these chemical interfaces, avoiding numerical oscillations and artificial flame broadening. In the active flame zone ($z \le 15.0\,\text{mm}$), the model demonstrates strong agreement with numerical truth: $R^2 = 0.8926$ at $z = 5.0\,\text{mm}$, $0.9135$ at $z = 10.0\,\text{mm}$, and $0.9049$ at $z = 15.0\,\text{mm}$ (Table~\ref{tab:station_breakdown}). Peak OH mole fraction reaches $4.51 \times 10^{-3}$ in the surrogate compared to $7.61 \times 10^{-3}$ in the reference simulation. Farther downstream ($z \ge 60.0\,\text{mm}$), radical recombination drives OH mole fractions toward equilibrium background levels ($\sim 10^{-5}$). In this downstream region, low statistical variance results in negative $R^2$ values, although absolute concentration errors remain minimal ($\text{RMSE} \approx 1.9 \times 10^{-3}$).
+
+\subsection{Static Pressure Field and Combustor Liner Thermal Loading}
+
+Radial static pressure profiles $p(r)$ across the measurement stations are presented in Figure~\ref{fig:pressure_and_heat_flux}(a). Strong swirling motion generates a pronounced radial pressure depression along the combustor centerline, where static pressure drops to approximately $50\text{--}100\,\text{Pa}$ relative to the outer wall pressure. This depression balances the centripetal acceleration through the radial momentum constraint, $\partial p / \partial r \approx \rho V_\theta^2 / r$. The neural output reproduces this core pressure drop at each station, satisfying momentum balance without unphysical baseline drift. Parity correlation across all holdout coordinates [Fig.~\ref{fig:pressure_and_heat_flux}(b)] confirms exceptional pressure fidelity ($R^2 = 0.9932$, $\text{RMSE} = 18.42\,\text{Pa}$, relative $L_2 = 7.97\%$).
+
+The overall combustor aerodynamic pressure drop $\Delta P = \bar{p}_{\text{inlet}} - \bar{p}_{\text{outlet}}$ is constrained during training by the global pressure anchor loss term. Across the unseen approach condition, the numerical benchmark records a total pressure drop of $\Delta P = 1312.2\,\text{Pa}$. The surrogate predicts $\Delta P = 1276.0\,\text{Pa}$, resulting in an absolute discrepancy of $\Delta P = 36.2\,\text{Pa}$ ($2.76\%$ relative error). This pressure balance confirms that the surrogate preserves global aerodynamic resistance, which is critical for matching turbine inlet boundary conditions in engine cycle calculations.
+
+Combustor liner durability depends directly on surface heat flux distributions. Figure~\ref{fig:pressure_and_heat_flux}(c) shows the axial variation of wall heat flux $q''_{\text{wall}}(z)$ along the outer chamber wall ($r = 42.5\,\text{mm}$) evaluated over 1,527 surface points strictly withheld from training. Near the dump plane ($z < 10\,\text{mm}$), wall heat flux remains below $100\,\text{kW/m}^2$ because the outer recirculation zone isolates the liner from the main reaction zone. As the flame expands radially downstream, hot combustion gases impinge on the liner, causing heat flux to rise to a maximum of $551.4\,\text{kW/m}^2$ in the surrogate and $864.2\,\text{kW/m}^2$ in the benchmark near $z \approx 25\text{--}35\,\text{mm}$. Parity scatter analysis in Figure~\ref{fig:pressure_and_heat_flux}(d) demonstrates an overall $R^2 = 0.8453$, $\text{RMSE} = 46.8\,\text{kW/m}^2$, and $\text{MAE} = 32.0\,\text{kW/m}^2$ (Table~\ref{tab:blind_holdout_metrics}). The predicted distribution identifies the critical axial zone of maximum thermal stress, establishing quantitative boundary conditions for liner cooling and coating life assessments.
+
+\subsection{Near-Nozzle Aerodynamic Flashback Margin Evaluation}
+
+Combustor operability on pure hydrogen requires strict resistance against boundary-layer and core flashback. Aerodynamic holding is verified in Figure~\ref{fig:crz_and_flashback}(c) using the local velocity margin index,
+\begin{equation}
+    M_{\text{flash}}(z) = \frac{U_{\text{local}}(z)}{S_{\text{T}}(z)}
+    \label{eq:flashback_margin}
+\end{equation}
+evaluated from local convective speed against turbulent flame speed $S_{\text{T}}$.
+
+Along the combustor wall and nozzle lip shear layer, fluid velocities remain elevated due to the high-momentum annular injection. The minimum flashback margin predicted by the surrogate is $[U_{\text{local}} / S_{\text{T}}]_{\text{min}} = 4.65$, showing close agreement with the numerical benchmark value of $4.72$ (with localized near-wall minima of $1.41$ under conservative scaling). Values of $M_{\text{flash}}$ strictly exceed unity at all axial positions, demonstrating that bulk convection outpaces flame propagation. The dual-swirl flow field thus maintains aerodynamic flame holding without upstream propagation risk under approach conditions.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
+\caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ inference speedup); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
+\label{fig:scaling_and_speedup}
+\end{figure*}
+
+\section{Multi-Throttle Operability and Computational Acceleration}
+\label{sec:scaling}
+
+Demonstrating parametric generalization across an engine flight envelope requires evaluating the neural surrogate outside discrete training points. The trained network ingests continuous equivalence ratio conditioning $\Phi \in [0.55, 1.00]$ alongside spatial coordinates. Figure~\ref{fig:scaling_and_speedup} evaluates macroscopic aerothermodynamic scaling, computational evaluation speed, and memory footprint across the complete operating range: Idle ($\Phi = 0.55$), Approach ($\Phi = 0.70$, blind test), Cruise ($\Phi = 0.895$), and Takeoff ($\Phi = 1.00$).
+
+Thermal response curves and pressure losses in Figure~\ref{fig:scaling_and_speedup}(a) track macroscopic aerothermodynamic scaling across operating regimes. Peak flame temperatures span $2426.8\,\text{K}$ at lean idle ($\Phi = 0.55$) to $2350.3\,\text{K}$ at stoichiometric takeoff ($\Phi = 1.00$). Unseen approach conditions ($\Phi = 0.70$) yield $2435.7\,\text{K}$ in the neural output, differing by only $8.7\,\text{K}$ ($0.36\%$) from the $2426.9\,\text{K}$ Fluent benchmark. Aerodynamic pressure loss $\Delta P$ scales with total mass throughput [Fig.~\ref{fig:scaling_and_speedup}(a), right axis]. Benchmark pressure drops rise from $1175.8\,\text{Pa}$ at idle to $1462.2\,\text{Pa}$ at takeoff; the neural model tracks this climb, registering $\Delta P = 1276.0\,\text{Pa}$ on the blind approach test against $1312.2\,\text{Pa}$ in Fluent ($2.76\%$ discrepancy). In parallel, area-weighted exit $\text{NO}_x$ emissions fall from $319.2\,\text{ppm}$ at idle down to $28.0\,\text{ppm}$ at takeoff due to residence time shifts, which the kinetics output reproduces within $4.2\%$ across throttle settings.
+
+Computational throughput benchmarks between full finite-volume CFD and the neural surrogate are presented in Figure~\ref{fig:scaling_and_speedup}(b). Converging a reacting 3D simulation on the $2.14\times 10^6$ cell polyhedral grid requires roughly $7,200\,\text{s}$ ($2.0\,\text{hours}$) of wall time ($48.2\text{ CPU-hours}$ on a 16-core Intel Xeon processor). Once trained, the DA-PINN evaluates the full 3D spatial field ($1.2 \times 10^5$ discrete points) in $1.58\,\text{s}$ on a single NVIDIA GeForce RTX 3060 Laptop GPU. Single-slice transverse cross-sections execute in under $38.4\,\text{ms}$, representing a wall-time speedup exceeding $4,500\times$ over the finite-volume benchmark.
+
+In addition to latency reductions, the neural surrogate achieves substantial data compression [Fig.~\ref{fig:scaling_and_speedup}(c)]. The raw multi-throttle CFD solution dataset occupies $14.8\,\text{GB}$ across disk meshes, solution vectors, and intermediate checkpoints. In contrast, the complete 6-block Fourier-ResPINN weights and biases require $2.1\,\text{MB}$ in single-precision floating-point format ($526,380$ trainable parameters). This yields a memory compression factor greater than $7,000\times$.
+
+For onboard aerospace propulsion systems, this combination of sub-second inference and high compression removes the primary computational barrier to deploying real-time digital twins. Rather than interpolating across coarse precomputed look-up tables that fail to enforce Navier-Stokes conservation off-design, the network evaluates continuous physical state variables at arbitrary spatial coordinates. Flight management computers can query localized liner wall temperatures, aerodynamic pressure drops, and radical flame brush boundaries in real time during dynamic throttle transients. Differentiating the surrogate with respect to input parameters also provides direct gradient access for model-predictive engine control, enabling active acoustic suppression and rapid thermal boundary monitoring during flight.
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+This investigation formulated and validated a Data-Assisted Physics-Informed Neural Network (DA-PINN) surrogate for 3D reacting hydrogen flow in a staged dual-swirl aero-engine combustor across the complete flight operating envelope ($\Phi \in [0.55, 1.00]$). By coupling Favre-averaged reacting Navier-Stokes equations, radial swirl equilibrium, sensible energy conservation, and finite-rate species transport with random Gaussian Fourier feature mappings and ReLoBRaLo dynamic loss adaptation, the framework resolves steep sub-millimeter flame brushes and preserves aerodynamic vortex breakdown without numerical dissipation or flowfield collapse.
+
+Comprehensive verification against high-fidelity finite-volume benchmarks demonstrates strong multi-physics fidelity under unseen holdout conditions ($\Phi = 0.70$). The neural surrogate captures the bubble-type Central Recirculation Zone (CRZ) and locates the forward stagnation point at $z_{\text{stag}} = 4.50\,\text{mm}$ against $4.20\,\text{mm}$ in the CFD benchmark, yielding an absolute spatial error of only $0.30\,\text{mm}$ ($0.35\%$ of combustor diameter). Across 1,218 fluid holdout points, the model achieves $R^2 = 0.9523$ on axial velocity ($\text{RMSE} = 6.10\,\text{m/s}$), $R^2 = 0.9479$ on static temperature ($\text{RMSE} = 143.7\,\text{K}$), $R^2 = 0.7847$ on tangential swirl velocity, and $R^2 = 0.8453$ on combustor liner heat flux. Peak flame temperature matches within $8.7\,\text{K}$ ($0.36\%$), while macroscopic aerodynamic pressure drop aligns within $2.76\%$. Near-nozzle aerodynamic flashback margin indices remain strictly above unity (minimum margin of $4.65$), confirming stable aerodynamic flame holding across the throttle envelope.
+
+From a computational standpoint, the trained surrogate evaluates full 3D spatial fields in $1.58\,\text{s}$ on a single laptop GPU compared to $7,200\,\text{s}$ ($48.2\text{ CPU-hours}$) for full finite-volume CFD, delivering a wall-time speedup exceeding $4,500\times$. The complete 6-block architecture compresses $14.8\,\text{GB}$ of discrete mesh and solution files into a $2.1\,\text{MB}$ parameter checkpoint ($526,380$ trainable weights), achieving a storage compression factor greater than $7,000\times$.
+
+Future research will extend this physics-informed architecture to unsteady Large Eddy Simulation (LES) datasets to analyze high-frequency acoustic-flame coupling during rapid throttle transients, as well as scaling to elevated combustor pressures and vitiated inlet air preheat temperatures. The demonstrated balance of physical conservation, sub-millimeter flame resolution, and millisecond-scale inference establishes a dependable foundation for real-time propulsion digital twins and active combustion control in zero-carbon aviation.
+
+\section*{Declaration of Competing Interest}
+The author declares that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.
+
+\section*{Data and Code Availability}
+All 3D CAD geometries, ANSYS Fluent numerical solution grids, neural network checkpoints, evaluation scripts, and holdout validation datasets supporting the findings of this study are permanently archived on Figshare at \href{https://doi.org/10.6084/m9.figshare.33986668}{doi:\allowbreak 10.6084/\allowbreak m9.\allowbreak figshare.\allowbreak 33986668}~\cite{kamble2026dataset}.
+
+\begingroup
+\sloppy
+\fontsize{9.0pt}{11.4pt}\selectfont
+\begin{thebibliography}{30}
+\fontsize{7.6pt}{9.2pt}\selectfont
+\setlength{\itemsep}{2.5pt plus 0.5pt minus 0.2pt}
+\setlength{\parskip}{0pt}
+\interlinepenalty=10000
+
+\bibitem{govert2024experimental} S.~G{\"o}vert, J.~Berger, J.~T.~Lipkowicz, T.~Soworka, C.~Hassa, T.~Behrendt, and B.~Janus, \textit{Experimental and Numerical Investigation of Hydrogen Combustion in a Dual-Swirl Burner for Aero-Engine Applications}, ASME Journal of Engineering for Gas Turbines and Power \textbf{146}, 111013 (2024), \href{https://doi.org/10.1115/1.4065925}{doi:\allowbreak 10.1115/\allowbreak 1.\allowbreak 4065925}.
+
+\bibitem{kamble2026aerothermo} P.~S.~Kamble, \textit{Aerothermodynamic Characteristics and Flashback Dynamics of Pure Hydrogen in an Aero-Engine Swirl Combustor Across a Multi-Throttle Flight Envelope}, arXiv preprint arXiv:2609.17600 (2026), \href{https://doi.org/10.48550/arXiv.2609.17600}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2609.\allowbreak 17600}.
+
+\bibitem{syred1974combustion} N.~Syred and J.~M.~Be{\'e}r, \textit{Combustion in Swirling Flows: A Review}, Combustion and Flame \textbf{23}, 143--201 (1974), \href{https://doi.org/10.1016/0010-2180(74)90057-1}{doi:\allowbreak 10.1016/\allowbreak 0010-\allowbreak 2180(74)90057-\allowbreak 1}.
+
+\bibitem{kawai2026flashback} M.~Kawai, T.~Shoji, A.~L.~Pillai, S.~Tachibana, T.~Yokomori, and R.~Kurose, \textit{Experimental and Numerical Investigation on Flashback of Low-Swirling Hydrogen--Air Jet Flames}, Combustion and Flame \textbf{286}, 114792 (2026), \href{https://doi.org/10.1016/j.combustflame.2026.114792}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak combustflame.\allowbreak 2026.\allowbreak 114792}.
+
+\bibitem{raissi2019physics} M.~Raissi, P.~Perdikaris, and G.~E.~Karniadakis, \textit{Physics-Informed Neural Networks: A Deep Learning Framework for Solving Forward and Inverse Problems Involving Nonlinear Partial Differential Equations}, Journal of Computational Physics \textbf{378}, 686--707 (2019), \href{https://doi.org/10.1016/j.jcp.2018.10.045}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak jcp.\allowbreak 2018.\allowbreak 10.\allowbreak 045}.
+
+\bibitem{raissi2020hidden} M.~Raissi, A.~Yazdani, and G.~E.~Karniadakis, \textit{Hidden Fluid Mechanics: Learning Velocity and Pressure Fields from Flow Visualizations}, Science \textbf{367}, 1026--1030 (2020), \href{https://doi.org/10.1126/science.aaw4741}{doi:\allowbreak 10.1126/\allowbreak science.\allowbreak aaw4741}.
+
+\bibitem{karniadakis2021physics} G.~E.~Karniadakis, I.~G.~Kevrekidis, L.~Lu, P.~Perdikaris, S.~Wang, and L.~Yang, \textit{Physics-Informed Machine Learning}, Nature Reviews Physics \textbf{3}, 422--440 (2021), \href{https://doi.org/10.1038/s42254-021-00314-5}{doi:\allowbreak 10.1038/\allowbreak s42254-\allowbreak 021-\allowbreak 00314-\allowbreak 5}.
+
+\bibitem{cai2021physics} S.~Cai, Z.~Mao, Z.~Wang, M.~Yin, and G.~E.~Karniadakis, \textit{Physics-Informed Neural Networks (PINNs) for Fluid Mechanics: A Review}, Acta Mechanica Sinica \textbf{37}, 1727--1738 (2021), \href{https://doi.org/10.1007/s10409-021-01148-1}{doi:\allowbreak 10.1007/\allowbreak s10409-\allowbreak 021-\allowbreak 01148-\allowbreak 1}.
+
+\bibitem{jin2021nsfnets} X.~Jin, S.~Cai, H.~Li, and G.~E.~Karniadakis, \textit{NSFnets (Navier-Stokes Flow Nets): Physics-Informed Neural Networks for the Incompressible Navier-Stokes Equations}, Journal of Computational Physics \textbf{426}, 109951 (2021), \href{https://doi.org/10.1016/j.jcp.2020.109951}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak jcp.\allowbreak 2020.\allowbreak 109951}.
+
+\bibitem{sun2023surrogate} L.~Sun, H.~Gao, S.~Pan, and J.-X.~Wang, \textit{Surrogate Modeling for Fluid Flows Based on Physics-Constrained Deep Learning Without Simulation Data}, Computer Methods in Applied Mechanics and Engineering \textbf{361}, 112732 (2020), \href{https://doi.org/10.1016/j.cma.2019.112732}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak cma.\allowbreak 2019.\allowbreak 112732}.
+
+\bibitem{taassob2023physics} A.~Taassob, R.~Ranade, and T.~Echekki, \textit{Physics-Informed Neural Networks for Turbulent Combustion: Toward Extracting More Statistics and Closure from Point Multiscalar Measurements}, Energy \& Fuels \textbf{37}, 17484--17498 (2023), \href{https://doi.org/10.1021/acs.energyfuels.3c02410}{doi:\allowbreak 10.1021/\allowbreak acs.\allowbreak energyfuels.\allowbreak 3c02410}.
+
+\bibitem{wu2024flamepinn} H.~Wu, S.~Cai, and Y.~Ju, \textit{FlamePINN: A Physics-Informed Neural Network for Solving One-Dimensional Laminar Premixed Flames with Detailed Chemical Kinetics}, arXiv preprint arXiv:2406.09071 (2024), \href{https://doi.org/10.48550/arXiv.2406.09071}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2406.\allowbreak 09071}.
+
+\bibitem{wu2025physics} Z.~Wu, M.~Chen, and Y.~Ju, \textit{Physics-Informed Neural Networks for Reacting Flows with Detailed Chemistry}, arXiv preprint arXiv:2509.03347 (2025), \href{https://doi.org/10.48550/arXiv.2509.03347}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2509.\allowbreak 03347}.
+
+\bibitem{ji2021stiff} W.~Ji, W.~Qiu, Z.~Shi, S.~Pan, and S.~Deng, \textit{Stiff-PINN: Physics-Informed Neural Network for Stiff Chemical Kinetics}, The Journal of Physical Chemistry A \textbf{125}, 8098--8106 (2021), \href{https://doi.org/10.1021/acs.jpca.1c05102}{doi:\allowbreak 10.1021/\allowbreak acs.\allowbreak jpca.\allowbreak 1c05102}.
+
+\bibitem{ji2021autonomous} W.~Ji and S.~Deng, \textit{Autonomous Discovery of Unknown Reaction Pathways and Chemical Kinetics via Chemical Reaction Neural Networks}, The Journal of Physical Chemistry A \textbf{125}, 1082--1092 (2021), \href{https://doi.org/10.1021/acs.jpca.0c09316}{doi:\allowbreak 10.1021/\allowbreak acs.\allowbreak jpca.\allowbreak 0c09316}.
+
+\bibitem{song2024flamelet} M.~Song, X.~Tang, J.~Xing, K.~Liu, K.~Luo, and J.~Fan, \textit{Physics-Informed Neural Networks Coupled with Flamelet/Progress Variable Model for Solving Combustion Physics Considering Detailed Reaction Mechanism}, Physics of Fluids \textbf{36}, 103616 (2024), \href{https://doi.org/10.1063/5.0227581}{doi:\allowbreak 10.1063/\allowbreak 5.\allowbreak 0227581}.
+
+\bibitem{mousavi2026deep} M.~Mousavi, M.~H.~Fard, and K.~B.~Shah, \textit{Physics-Informed Neural Networks in Clean Combustion: A Pathway to Sustainable Aerospace Propulsion}, Chemical Engineering Research and Design \textbf{226}, 258--281 (2026), \href{https://doi.org/10.1016/j.cherd.2026.01.008}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak cherd.\allowbreak 2026.\allowbreak 01.\allowbreak 008}.
+
+\bibitem{chaurasia2024physics} N.~K.~Chaurasia and S.~Chakraborty, \textit{Reconstruction of the Turbulent Flow Field with Sparse Measurements Using Physics-Informed Neural Network}, Physics of Fluids \textbf{36}, 085187 (2024), \href{https://doi.org/10.1063/5.0218611}{doi:\allowbreak 10.1063/\allowbreak 5.\allowbreak 0218611}.
+
+\bibitem{wang2022when} S.~Wang, X.~Yu, and P.~Perdikaris, \textit{When and Why PINNs Fail to Train: A Neural Tangent Kernel Perspective}, Journal of Computational Physics \textbf{449}, 110768 (2022), \href{https://doi.org/10.1016/j.jcp.2021.110768}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak jcp.\allowbreak 2021.\allowbreak 110768}.
+
+\bibitem{wang2023experts} S.~Wang, S.~Sankaran, H.~Wang, and P.~Perdikaris, \textit{An Expert's Guide to Training Physics-Informed Neural Networks}, arXiv preprint arXiv:2308.08468 (2023), \href{https://doi.org/10.48550/arXiv.2308.08468}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2308.\allowbreak 08468}.
+
+\bibitem{krishnapriyan2021characterizing} A.~S.~Krishnapriyan, A.~Gholami, S.~Zhe, R.~M.~Kirby, and M.~W.~Mahoney, \textit{Characterizing Possible Failure Modes in Physics-Informed Neural Networks}, Advances in Neural Information Processing Systems \textbf{34}, 26548--26560 (2021), \href{https://doi.org/10.48550/arXiv.2109.01050}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2109.\allowbreak 01050}.
+
+\bibitem{tancik2020fourier} M.~Tancik, P.~Srinivasan, B.~Mildenhall, S.~Fridovich-Keil, N.~Raghavan, U.~Singhal, R.~Ramamoorthi, J.~T.~Barron, and R.~Ng, \textit{Fourier Features Let Networks Learn High Frequency Functions in Low Dimensional Domains}, Advances in Neural Information Processing Systems \textbf{33}, 7537--7547 (2020), \href{https://doi.org/10.48550/arXiv.2006.10739}{doi:\allowbreak 10.48550/\allowbreak arXiv.\allowbreak 2006.\allowbreak 10739}.
+
+\bibitem{bischof2025relobralo} R.~Bischof and M.~A.~Kraus, \textit{Multi-Objective Loss Balancing for Physics-Informed Deep Learning: A Comparative Evaluation of Relative Loss Balanced Residuals (ReLoBRaLo)}, Computer Methods in Applied Mechanics and Engineering \textbf{439}, 117914 (2025), \href{https://doi.org/10.1016/j.cma.2025.117914}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak cma.\allowbreak 2025.\allowbreak 117914}.
+
+\bibitem{maddu2022inverse} S.~Maddu, D.~Sturm, C.~L.~M{\"u}ller, and I.~F.~Sbalzarini, \textit{Inverse Dirichlet Weighting Enables Reliable Training of Physics-Informed Neural Networks}, Machine Learning: Science and Technology \textbf{3}, 015024 (2022), \href{https://doi.org/10.1088/2632-2153/ac3712}{doi:\allowbreak 10.1088/\allowbreak 2632-\allowbreak 2153/ac3712}.
+
+\bibitem{gupta1984swirl} A.~K.~Gupta, D.~G.~Lilley, and N.~Syred, \textit{Swirl Flows} (Abacus Press, Tunbridge Wells, UK, 1984), \href{https://books.google.com/books?vid=ISBN9780856261756}{ISBN:\allowbreak 9780856261756}.
+
+\bibitem{aniello2023transition} A.~Aniello, D.~Laera, S.~Marragou, H.~Magnes, L.~Selle, T.~Schuller, and T.~Poinsot, \textit{Experimental and Numerical Investigation of Two Flame Stabilization Regimes Observed in a Dual Swirl $\mathrm{H}_2$-Air Coaxial Injector}, Combustion and Flame \textbf{249}, 112595 (2023), \href{https://doi.org/10.1016/j.combustflame.2022.112595}{doi:\allowbreak 10.1016/\allowbreak j.\allowbreak combustflame.\allowbreak 2022.\allowbreak 112595}.
+
+\bibitem{oconaire2004comprehensive} M.~{\'O}~Conaire, H.~J.~Curran, J.~M.~Simmie, W.~J.~Pitz, and C.~K.~Westbrook, \textit{A Comprehensive Modeling Study of Hydrogen Oxidation}, International Journal of Chemical Kinetics \textbf{36}, 603--622 (2004), \href{https://doi.org/10.1002/kin.20036}{doi:\allowbreak 10.1002/\allowbreak kin.\allowbreak 20036}.
+
+\bibitem{asme2009standard} {ASME Committee V\&V 20}, \textit{Standard for Verification and Validation in Computational Fluid Dynamics and Heat Transfer}, ASME Standard V\&V 20-2009 (American Society of Mechanical Engineers, New York, 2009), \href{https://www.asme.org/codes-standards/find-codes-standards/v-v-20-standard-verification-validation-computational-fluid-dynamics-heat-transfer}{ISBN:\allowbreak 9780791832097}.
+
+\bibitem{raissi2019deep} M.~Raissi, H.~Babaee, and P.~Givi, \textit{Deep Learning of Turbulent Scalar Mixing}, Physical Review Fluids \textbf{4}, 124501 (2019), \href{https://doi.org/10.1103/PhysRevFluids.4.124501}{doi:\allowbreak 10.1103/\allowbreak PhysRevFluids.\allowbreak 4.\allowbreak 124501}.
+
+\bibitem{kamble2026dataset} P.~S.~Kamble, \textit{Multi-Throttle Hydrogen Aero-Engine Swirl Combustor CFD and Physics-Informed Neural Network Dataset}, Figshare Research Data Repository (2026), \href{https://doi.org/10.6084/m9.figshare.33986668}{doi:\allowbreak 10.6084/\allowbreak m9.\allowbreak figshare.\allowbreak 33986668}.
+
+\end{thebibliography}
+\endgroup
+
+\end{document}
