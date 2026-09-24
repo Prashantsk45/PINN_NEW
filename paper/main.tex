@@ -400,6 +400,13 @@ Along the combustor wall and nozzle lip shear layer, fluid velocities remain ele
 \section{Multi-Throttle Operability and Computational Acceleration}
 \label{sec:scaling}
 
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
+\caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ 3D wall-time speedup and $> 4.5 \times 10^6\times$ throughput acceleration); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
+\label{fig:scaling_and_speedup}
+\end{figure*}
+
 Demonstrating parametric generalization across an engine flight envelope requires evaluating the neural surrogate outside discrete training points. The trained network ingests continuous equivalence ratio conditioning $\Phi \in [0.55, 1.00]$ alongside spatial coordinates. Figure~\ref{fig:scaling_and_speedup} evaluates macroscopic aerothermodynamic scaling, computational evaluation speed, and memory footprint across the complete operating range: Idle ($\Phi = 0.55$), Approach ($\Phi = 0.70$, blind test), Cruise ($\Phi = 0.895$), and Takeoff ($\Phi = 1.00$).
 
 Thermal response curves and pressure losses in Figure~\ref{fig:scaling_and_speedup}(a) track macroscopic aerothermodynamic scaling across operating regimes. Peak flame temperatures span $2426.8\,\text{K}$ at lean idle ($\Phi = 0.55$) to $2350.3\,\text{K}$ at stoichiometric takeoff ($\Phi = 1.00$). Unseen approach conditions ($\Phi = 0.70$) yield $2435.7\,\text{K}$ in the neural output, differing by only $8.7\,\text{K}$ ($0.36\%$) from the $2426.9\,\text{K}$ Fluent benchmark. Aerodynamic pressure loss $\Delta P$ scales with total mass throughput [Fig.~\ref{fig:scaling_and_speedup}(a), right axis]. Benchmark pressure drops rise from $1175.8\,\text{Pa}$ at idle to $1462.2\,\text{Pa}$ at takeoff; the neural model tracks this climb, registering $\Delta P = 1276.0\,\text{Pa}$ on the blind approach test against $1312.2\,\text{Pa}$ in Fluent ($2.76\%$ discrepancy). In parallel, area-weighted exit $\text{NO}_x$ emissions fall from $319.2\,\text{ppm}$ at idle down to $28.0\,\text{ppm}$ at takeoff due to residence time shifts, which the kinetics output reproduces within $4.2\%$ across throttle settings.
@@ -409,13 +416,6 @@ Computational throughput benchmarks between full finite-volume CFD and the neura
 In addition to latency reductions, the neural surrogate achieves substantial data compression [Fig.~\ref{fig:scaling_and_speedup}(c)]. The raw multi-throttle CFD solution dataset occupies $14.8\,\text{GB}$ across disk meshes, solution vectors, and intermediate checkpoints. In contrast, the complete 6-block Fourier-ResPINN weights and biases require $2.1\,\text{MB}$ in single-precision floating-point format ($526,380$ trainable parameters). This yields a memory compression factor greater than $7,000\times$.
 
 For onboard aerospace propulsion systems, this combination of sub-second inference and high compression removes the primary computational barrier to deploying real-time digital twins. Rather than interpolating across coarse precomputed look-up tables that fail to enforce Navier-Stokes conservation off-design, the network evaluates continuous physical state variables at arbitrary spatial coordinates. Flight management computers can query localized liner wall temperatures, aerodynamic pressure drops, and radical flame brush boundaries in real time during dynamic throttle transients. Differentiating the surrogate with respect to input parameters also provides direct gradient access for model-predictive engine control, enabling active acoustic suppression and rapid thermal boundary monitoring during flight.
-
-\begin{figure*}[t]
-\centering
-\includegraphics[width=\textwidth]{figures/figure_10_scaling_and_computational_speedup.pdf}
-\caption{Multi-throttle operability scaling and computational acceleration benchmark across the flight envelope ($\Phi \in [0.55, 1.00]$): (a) multi-throttle aerothermodynamic scaling depicting volume peak flame temperature $T_{\text{max}}(\Phi)$ (left axis) and chamber aerodynamic pressure drop $\Delta P(\Phi)$ (right axis); (b) wall-time computational latency comparison evaluating full 3D finite-volume CFD against the DA-PINN surrogate ($> 4,500\times$ 3D wall-time speedup and $> 4.5 \times 10^6\times$ throughput acceleration); and (c) resource storage footprint and compression ratio ($> 7,000\times$ memory reduction from $14.8\,\text{GB}$ CFD mesh and state data to $2.1\,\text{MB}$ neural weights).}
-\label{fig:scaling_and_speedup}
-\end{figure*}
 
 \section{Conclusions}
 \label{sec:conclusions}
