@@ -1,5 +1,6 @@
 # Physics-Informed Neural Networks for 3D Aerodynamic and Reacting Flow Reconstruction in a Hydrogen Swirl Aero-Engine Combustor
 
+[![SSRN Preprint: 7539041](https://img.shields.io/badge/SSRN-doi.org%2F10.2139%2Fssrn.7539041-b31b1b.svg)](https://doi.org/10.2139/ssrn.7539041)
 [![DOI: 10.6084/m9.figshare.33986668](https://img.shields.io/badge/DOI-10.6084%2Fm9.figshare.33986668-blue.svg)](https://doi.org/10.6084/m9.figshare.33986668)
 [![Status: Under Review](https://img.shields.io/badge/Status-Under%20Review-success.svg)]()
 [![Architecture: Fourier--ResNet--PINN](https://img.shields.io/badge/Architecture-Fourier--ResNet--PINN-orange.svg)]()
@@ -11,6 +12,7 @@
 **Author:** [Prashant Suresh Kamble](https://orcid.org/0009-0005-4228-3795)  
 **Email:** [prashantsk.272@gmail.com](mailto:prashantsk.272@gmail.com)  
 **Affiliation:** AeroMyne, Solapur, Maharashtra 413305, India  
+**Preprint:** [SSRN Electronic Journal (doi:10.2139/ssrn.7539041)](https://doi.org/10.2139/ssrn.7539041)  
 **Figshare Archive:** [doi:10.6084/m9.figshare.33986668](https://doi.org/10.6084/m9.figshare.33986668)  
 **Target Publication:** *Physical Review Fluids* / *AIAA Journal* (Under Review)  
 
@@ -148,26 +150,34 @@ Quantitative verification at the unseen Approach flight condition ($\Phi = 0.700
 All spatial dimensions and field variables are non-dimensionalized by characteristic scales ($L_0 = 85.0\,\text{mm}$, $U_0 = 151.54\,\text{m/s}$, $\rho_0 = 1.18\,\text{kg/m}^3$, $\Delta T_0 = 2080\,\text{K}$, $P_0 = 2.71 \times 10^4\,\text{Pa}$, $\mu_0 = 1.85 \times 10^{-5}\,\text{Pa}\cdot\text{s}$), establishing $Re = 8.2 \times 10^4$, $Pr = 0.71$, $Sc = 0.65$, $Da = 12.8$, $Pr_t = 0.85$, and $Sc_t = 0.70$.
 
 1. **Mass Conservation (Continuity):**
-   $$\mathcal{R}_{\text{cont}} \equiv \tilde{\nabla} \cdot (\tilde{\rho} \tilde{u}) = 0$$
+
+$$\mathcal{R}_{\text{cont}} \equiv \tilde{\nabla} \cdot (\tilde{\rho} \tilde{u}) = 0$$
 
 2. **Favre-Averaged Navier-Stokes Momentum:**
-   $$\mathcal{R}_{\text{mom}} \equiv (\tilde{u} \cdot \tilde{\nabla})\tilde{u} + \frac{1}{\tilde{\rho}}\tilde{\nabla}\tilde{p} - \tilde{\nabla} \cdot \left[ \tilde{\nu}_{\text{eff}} \left( \tilde{\nabla}\tilde{u} + (\tilde{\nabla}\tilde{u})^T - \frac{2}{3}(\tilde{\nabla}\cdot\tilde{u})I \right) \right] = 0$$
+
+$$\mathcal{R}_{\text{mom}} \equiv (\tilde{u} \cdot \tilde{\nabla})\tilde{u} + \frac{1}{\tilde{\rho}}\tilde{\nabla}\tilde{p} - \tilde{\nabla} \cdot \left[ \tilde{\nu}_{\text{eff}} \left( \tilde{\nabla}\tilde{u} + (\tilde{\nabla}\tilde{u})^T - \frac{2}{3}(\tilde{\nabla}\cdot\tilde{u})I \right) \right] = 0$$
 
 3. **Radial Swirl Momentum Balance:**
-   $$\mathcal{R}_{\text{swirl}} \equiv \frac{\partial \tilde{p}}{\partial \tilde{r}} - \tilde{\rho} \frac{\tilde{v}_\theta^2}{\tilde{r}} = 0, \quad \tilde{r} = \sqrt{\tilde{x}^2 + \tilde{y}^2 + 10^{-8}}$$
+
+$$\mathcal{R}_{\text{swirl}} \equiv \frac{\partial \tilde{p}}{\partial \tilde{r}} - \tilde{\rho} \frac{\tilde{v}_\theta^2}{\tilde{r}} = 0, \quad \tilde{r} = \sqrt{\tilde{x}^2 + \tilde{y}^2 + 10^{-8}}$$
 
 4. **Sensible Thermal Energy Conservation:**
-   $$\mathcal{R}_{\text{energy}} \equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})\tilde{T} - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Pr} + \frac{\tilde{\nu}_t}{Pr_t}\right)\tilde{\nabla}\tilde{T} \right] - Da \cdot \tilde{\dot{\omega}}_T = 0$$
+
+$$\mathcal{R}_{\text{energy}} \equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})\tilde{T} - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Pr} + \frac{\tilde{\nu}_t}{Pr_t}\right)\tilde{\nabla}\tilde{T} \right] - Da \cdot \tilde{\dot{\omega}}_T = 0$$
 
 5. **Chemical Species Transport:**
-   $$\mathcal{R}_{\text{species}} \equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})Y_k - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Sc_k} + \frac{\tilde{\nu}_t}{Sc_t}\right)\tilde{\nabla}Y_k \right] - Da \cdot \tilde{\dot{\omega}}_k = 0$$
+
+$$\mathcal{R}_{\text{species}} \equiv \tilde{\rho}(\tilde{u} \cdot \tilde{\nabla})Y_k - \tilde{\nabla} \cdot \left[ \left(\frac{1}{Re Sc_k} + \frac{\tilde{\nu}_t}{Sc_t}\right)\tilde{\nabla}Y_k \right] - Da \cdot \tilde{\dot{\omega}}_k = 0$$
 
 6. **Ideal Gas State Coupling:**
-   $$\tilde{\rho}(\tilde{T}) = \frac{1}{1 + \beta \tilde{T}}, \quad \beta = \frac{\Delta T_0}{T_0} = 6.93$$
+
+$$\tilde{\rho}(\tilde{T}) = \frac{1}{1 + \beta \tilde{T}}, \quad \beta = \frac{\Delta T_0}{T_0} = 6.93$$
 
 7. **Dynamic ReLoBRaLo Loss Weighting:**
-   $$\rho_m(t) = \frac{\mathcal{L}_m(t)}{\tau \mathcal{L}_m(t - \Delta t) + \epsilon}, \quad \hat{\lambda}_m(t) = N_{\text{loss}} \cdot \frac{\exp(\rho_m(t) / T_{\text{soft}})}{\sum_k \exp(\rho_k(t) / T_{\text{soft}})}$$
-   $$\lambda_m(t) = \alpha_{\text{ema}} \lambda_m(t - 1) + (1 - \alpha_{\text{ema}}) \hat{\lambda}_m(t), \quad \lambda_m \in [0.05, 50.0]$$
+
+$$\rho_m(t) = \frac{\mathcal{L}_m(t)}{\tau \mathcal{L}_m(t - \Delta t) + \epsilon}, \quad \hat{\lambda}_m(t) = N_{\text{loss}} \cdot \frac{\exp(\rho_m(t) / T_{\text{soft}})}{\sum_k \exp(\rho_k(t) / T_{\text{soft}})}$$
+
+$$\lambda_m(t) = \alpha_{\text{ema}} \lambda_m(t - 1) + (1 - \alpha_{\text{ema}}) \hat{\lambda}_m(t), \quad \lambda_m \in [0.05, 50.0]$$
 
 ---
 
@@ -314,16 +324,17 @@ python src/generate_figures.py
 
 ## 8. Citation
 
-If you use this codebase, neural surrogate weights, or numerical benchmark datasets in your research, please cite our manuscript:
+If you use this codebase, neural surrogate weights, or numerical benchmark datasets in your research, please cite our preprint and manuscript:
 
 ```bibtex
 @article{kamble2026pinncombustor,
   title     = {Physics-Informed Neural Networks for 3D Aerodynamic and Reacting Flow Reconstruction in a Hydrogen Swirl Aero-Engine Combustor},
   author    = {Kamble, Prashant Suresh},
-  journal   = {Physical Review Fluids},
+  journal   = {SSRN Electronic Journal},
   year      = {2026},
   note      = {Under Review},
-  doi       = {10.6084/m9.figshare.33986668}
+  doi       = {10.2139/ssrn.7539041},
+  url       = {https://doi.org/10.2139/ssrn.7539041}
 }
 
 @software{kamble2026pinndataset,
@@ -346,3 +357,5 @@ If you use this codebase, neural surrogate weights, or numerical benchmark datas
 * **Email:** [prashantsk.272@gmail.com](mailto:prashantsk.272@gmail.com)
 * **ORCID:** [0009-0005-4228-3795](https://orcid.org/0009-0005-4228-3795)
 * **Affiliation:** AeroMyne, Solapur, Maharashtra 413305, India
+* **Preprint:** [SSRN Electronic Journal (doi:10.2139/ssrn.7539041)](https://doi.org/10.2139/ssrn.7539041)
+* **Target Publication:** *Physical Review Fluids* / *AIAA Journal* (Under Review)
