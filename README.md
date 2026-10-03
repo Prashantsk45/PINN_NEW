@@ -251,6 +251,9 @@ The neural model continuously generalizes across the full flight envelope ($\Phi
 │   ├── phi082_blind_predictions.csv
 │   └── audit_report.json
 │
+├── references/                         # Bibliography Database
+│   └── references.bib
+│
 └── figures/                            # Master Publication Figures (600 DPI PNG & Vector PDF)
     ├── figure_1_architecture_and_domain.png / .pdf
     ├── figure_2_neural_architecture.png / .pdf
